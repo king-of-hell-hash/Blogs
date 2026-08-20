@@ -1,0 +1,27 @@
+{
+  "rules": {
+    "firestore": [
+      {
+        "match": "/users/{userId}/blogs/{blogId}",
+        "allow": {
+          "read": "request.auth != null && request.auth.uid == userId",
+          "create": "request.auth != null && request.auth.uid == userId",
+          "update": "request.auth != null && request.auth.uid == userId",
+          "delete": "request.auth != null && request.auth.uid == userId"
+        }
+      }
+    ]
+  },
+  "indexes": {
+    "firestore": [
+      {
+        "collectionGroup": "blogs",
+        "queryScope": "COLLECTION",
+        "fields": [
+          { "fieldPath": "userId", "order": "ASCENDING" },
+          { "fieldPath": "createdAt", "order": "DESCENDING" }
+        ]
+      }
+    ]
+  }
+}

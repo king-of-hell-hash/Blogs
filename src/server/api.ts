@@ -31,7 +31,7 @@ router.post('/generate', async (req, res) => {
       }
     });
 
-    const { keyword, audience, intent, tone, length, readingLevel } = req.body;
+    const { keyword, audience, intent, tone, length, readingLevel, useSearchGrounding } = req.body;
 
     if (!keyword) {
       return res.status(400).json({ error: "Keyword is required" });
@@ -70,6 +70,7 @@ Requirements:
       model: "gemini-3.6-flash",
       contents: prompt,
       config: {
+        tools: useSearchGrounding ? [{ googleSearch: {} }] : undefined,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,

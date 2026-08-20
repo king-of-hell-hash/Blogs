@@ -21,7 +21,7 @@ const ai = new GoogleGenAI({
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { keyword, audience, intent, tone, length, readingLevel } = body;
+    const { keyword, audience, intent, tone, length, readingLevel, useSearchGrounding } = body;
 
     if (!keyword) {
       return NextResponse.json({ error: "Keyword is required" }, { status: 400 });
@@ -60,6 +60,7 @@ Requirements:
       model: "gemini-3.6-flash",
       contents: prompt,
       config: {
+        tools: useSearchGrounding ? [{ googleSearch: {} }] : undefined,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
