@@ -37,7 +37,7 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { keyword, audience, intent, tone, length, readingLevel, useSearchGrounding } = req.body;
+    const { keyword, audience, intent, tone, length, readingLevel } = req.body;
 
     if (!keyword) {
       return res.status(400).json({ error: "Keyword is required" });
@@ -76,7 +76,6 @@ Requirements:
       model: "gemini-3.6-flash",
       contents: prompt,
       config: {
-        tools: useSearchGrounding ? [{ googleSearch: {} }] : undefined,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -98,6 +97,14 @@ Requirements:
     return res.status(200).json(resultJson);
   } catch (error: any) {
     console.error("Gemini API Error:", error);
-    return res.status(500).json({ error: error.message || "An unexpected error occurred during generation." });
+    
+    let errorMessage = "An unexpected error occurred during generation.";
+    if (error.status === 429 || (error.message && error.message.includes("429"))) {
+      errorMessage = "Gemini API Quota Exceeded. Please try again later or check your API key billing details.";
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
+    return res.status(error.status === 429 ? 429 : 500).json({ error: errorMessage });
   }
 }

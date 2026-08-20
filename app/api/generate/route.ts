@@ -21,7 +21,7 @@ const ai = new GoogleGenAI({
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { keyword, audience, intent, tone, length, readingLevel, useSearchGrounding } = body;
+    const { keyword, audience, intent, tone, length, readingLevel } = body;
 
     if (!keyword) {
       return NextResponse.json({ error: "Keyword is required" }, { status: 400 });
@@ -60,7 +60,6 @@ Requirements:
       model: "gemini-3.6-flash",
       contents: prompt,
       config: {
-        tools: useSearchGrounding ? [{ googleSearch: {} }] : undefined,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -82,9 +81,17 @@ Requirements:
     return NextResponse.json(resultJson);
   } catch (error: any) {
     console.error("Gemini API Error:", error);
+    
+    let errorMessage = "An unexpected error occurred during generation.";
+    if (error.status === 429 || (error.message && error.message.includes("429"))) {
+      errorMessage = "Gemini API Quota Exceeded. Please try again later or check your API key billing details.";
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
     return NextResponse.json(
-      { error: error.message || "An unexpected error occurred during generation." },
-      { status: 500 }
+      { error: errorMessage },
+      { status: error.status === 429 ? 429 : 500 }
     );
   }
 }
