@@ -1,23 +1,30 @@
-import { NextResponse } from 'next/server';
+import express from 'express';
 import { GoogleGenAI } from "@google/genai";
 
+const router = express.Router();
+
+// Helper to sanitize the API key from zero-width spaces or other invisible characters
+// This prevents "Cannot convert argument to a ByteString" errors in Node's fetch headers.
 function getCleanApiKey(): string {
   const key = process.env.GEMINI_API_KEY || '';
   return key.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
 }
 
-// Initialize Gemini
 const ai = new GoogleGenAI({
   apiKey: getCleanApiKey(),
+  httpOptions: {
+    headers: {
+      'User-Agent': 'aistudio-build',
+    }
+  }
 });
 
-export async function POST(req: Request) {
+router.post('/generate', async (req, res) => {
   try {
-    const body = await req.json();
-    const { keyword, audience, intent, tone, length, readingLevel } = body;
+    const { keyword, audience, intent, tone, length, readingLevel } = req.body;
 
     if (!keyword) {
-      return NextResponse.json({ error: "Keyword is required" }, { status: 400 });
+      return res.status(400).json({ error: "Keyword is required" });
     }
 
     const prompt = `
@@ -56,12 +63,13 @@ Output only the Markdown content. Do not include introductory/outro chat text.
       contents: prompt,
     });
 
-    return NextResponse.json({ content: response.text });
+    return res.status(200).json({ content: response.text });
   } catch (error: any) {
     console.error("Gemini API Error:", error);
-    return NextResponse.json(
-      { error: error.message || "An unexpected error occurred during generation." },
-      { status: 500 }
-    );
+    return res.status(500).json({ 
+      error: error.message || "An unexpected error occurred during generation." 
+    });
   }
-}
+});
+
+export { router as apiRouter };

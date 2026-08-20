@@ -1,12 +1,17 @@
 import { GoogleGenAI } from "@google/genai";
 
+function getCleanApiKey(): string {
+  const key = process.env.GEMINI_API_KEY || '';
+  return key.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+}
+
 const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
+  apiKey: getCleanApiKey(),
 });
 
 export default async function handler(req: any, res: any) {
   // CORS Headers for Vercel if needed
-  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader(
