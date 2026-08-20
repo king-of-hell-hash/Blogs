@@ -1,26 +1,36 @@
 import express from 'express';
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 const router = express.Router();
 
-// Helper to sanitize the API key from zero-width spaces or other invisible characters
-// This prevents "Cannot convert argument to a ByteString" errors in Node's fetch headers.
 function getCleanApiKey(): string {
   const key = process.env.GEMINI_API_KEY || '';
-  return key.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
-}
-
-const ai = new GoogleGenAI({
-  apiKey: getCleanApiKey(),
-  httpOptions: {
-    headers: {
-      'User-Agent': 'aistudio-build',
-    }
+  const cleaned = key.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+  
+  // Guard against user pasting prompt text instead of a real API key
+  if (cleaned.length > 0 && (cleaned.includes(' ') || cleaned.length > 100)) {
+    throw new Error("Invalid GEMINI_API_KEY. It looks like you pasted a text prompt instead of a real API key in your Vercel Environment Variables.");
   }
-});
+  
+  return cleaned;
+}
 
 router.post('/generate', async (req, res) => {
   try {
+    const apiKey = getCleanApiKey();
+    if (!apiKey) {
+       return res.status(500).json({ error: "Missing GEMINI_API_KEY. Please set it in your environment variables." });
+    }
+
+    const ai = new GoogleGenAI({
+      apiKey: apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        }
+      }
+    });
+
     const { keyword, audience, intent, tone, length, readingLevel } = req.body;
 
     if (!keyword) {
@@ -40,8 +50,8 @@ Parameters:
 
 Requirements:
 1. **On-Page SEO**:
-   - Write a high-CTR Meta Title (under 60 chars) at the top.
-   - Write a Meta Description (under 160 chars) below the title.
+   - Write a high-CTR Meta Title (under 60 chars).
+   - Write a Meta Description (under 160 chars).
    - Provide a recommended URL Slug.
    - Provide a Focus Keyword and a list of LSI keywords.
 2. **Monetization (AdSense)**:
@@ -54,16 +64,32 @@ Requirements:
    - Include real-world examples, a step-by-step checklist, a FAQ section formatted for Google Featured Snippets, and a pros/cons table.
 5. **Formatting**:
    - Output everything in clean, semantic Markdown with clear H1, H2, and H3 headers, bulleted lists, and blockquotes.
-
-Output only the Markdown content. Do not include introductory/outro chat text.
 `;
 
     const response = await ai.models.generateContent({
       model: "gemini-1.5-flash",
       contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            metaTitle: { type: Type.STRING, description: "The high-CTR Meta Title (under 60 chars)" },
+            metaDescription: { type: Type.STRING, description: "The Meta Description (under 160 chars)" },
+            urlSlug: { type: Type.STRING, description: "Recommended URL Slug" },
+            focusKeyword: { type: Type.STRING },
+            lsiKeywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+            markdown: { type: Type.STRING, description: "The fully formatted blog post in Markdown" },
+            schemaMarkup: { type: Type.STRING, description: "JSON-LD Schema Markup (Article / HowTo) as a string" }
+          },
+          required: ["metaTitle", "metaDescription", "urlSlug", "focusKeyword", "lsiKeywords", "markdown", "schemaMarkup"]
+        }
+      }
     });
 
-    return res.status(200).json({ content: response.text });
+    // The response text is guaranteed to be a JSON string matching the schema
+    const resultJson = JSON.parse(response.text || '{}');
+    return res.status(200).json(resultJson);
   } catch (error: any) {
     console.error("Gemini API Error:", error);
     return res.status(500).json({ 

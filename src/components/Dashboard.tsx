@@ -57,7 +57,29 @@ export default function Dashboard() {
       }
       
       const data = await res.json();
-      setGeneratedContent(data.content);
+      
+      const combinedContent = `
+# SEO Metadata
+
+**Meta Title:** ${data.metaTitle}
+**Meta Description:** ${data.metaDescription}
+**URL Slug:** \`${data.urlSlug}\`
+**Focus Keyword:** ${data.focusKeyword}
+**LSI Keywords:** ${data.lsiKeywords?.join(', ')}
+
+---
+
+${data.markdown}
+
+---
+
+# Schema Markup
+\`\`\`json
+${data.schemaMarkup}
+\`\`\`
+      `.trim();
+
+      setGeneratedContent(combinedContent);
     } catch (err: any) {
       setError(err.message);
     } finally {
