@@ -36,8 +36,24 @@ export default function Dashboard() {
       });
       
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to generate content');
+        const contentType = res.headers.get("content-type");
+        let errorMessage = 'Failed to generate content';
+        
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await res.json();
+          errorMessage = errorData.error || errorMessage;
+        } else {
+          // If we receive an HTML error page (e.g. 404 or 502), extract a snippet
+          const textData = await res.text();
+          errorMessage = `Server Error (${res.status}): ${textData.replace(/<[^>]+>/g, ' ').substring(0, 100).trim()}...`;
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
+      const contentType = res.headers.get("content-type");
+      if (contentType && !contentType.includes("application/json")) {
+          throw new Error("Received non-JSON response from server on successful status code.");
       }
       
       const data = await res.json();

@@ -58,14 +58,14 @@ Output only the Markdown content. Do not include introductory/outro chat text.
 `;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.7-flash",
+        model: "gemini-1.5-flash",
         contents: prompt,
       });
 
       res.json({ content: response.text });
     } catch (error: any) {
       console.error("Gemini API Error:", error);
-      res.status(500).json({ error: error.message || "Failed to generate content" });
+      res.status(500).json({ error: error.message || "An unexpected error occurred during generation." });
     }
   });
 
