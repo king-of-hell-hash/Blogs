@@ -56,26 +56,56 @@ Requirements:
    - Output everything in clean, semantic Markdown with clear H1, H2, and H3 headers, bulleted lists, and blockquotes.
 `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            metaTitle: { type: Type.STRING, description: "The high-CTR Meta Title (under 60 chars)" },
-            metaDescription: { type: Type.STRING, description: "The Meta Description (under 160 chars)" },
-            urlSlug: { type: Type.STRING, description: "Recommended URL Slug" },
-            focusKeyword: { type: Type.STRING },
-            lsiKeywords: { type: Type.ARRAY, items: { type: Type.STRING } },
-            markdown: { type: Type.STRING, description: "The fully formatted blog post in Markdown" },
-            schemaMarkup: { type: Type.STRING, description: "JSON-LD Schema Markup (Article / HowTo) as a string" }
-          },
-          required: ["metaTitle", "metaDescription", "urlSlug", "focusKeyword", "lsiKeywords", "markdown", "schemaMarkup"]
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: prompt,
+        config: {
+          tools: [{ googleSearch: {} }],
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              metaTitle: { type: Type.STRING, description: "The high-CTR Meta Title (under 60 chars)" },
+              metaDescription: { type: Type.STRING, description: "The Meta Description (under 160 chars)" },
+              urlSlug: { type: Type.STRING, description: "Recommended URL Slug" },
+              focusKeyword: { type: Type.STRING },
+              lsiKeywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+              markdown: { type: Type.STRING, description: "The fully formatted blog post in Markdown" },
+              schemaMarkup: { type: Type.STRING, description: "JSON-LD Schema Markup (Article / HowTo) as a string" }
+            },
+            required: ["metaTitle", "metaDescription", "urlSlug", "focusKeyword", "lsiKeywords", "markdown", "schemaMarkup"]
+          }
         }
+      });
+    } catch (e: any) {
+      if (e.status === 429 || (e.message && e.message.includes("429"))) {
+        console.warn("Search grounding quota exceeded, falling back to standard generation...");
+        response = await ai.models.generateContent({
+          model: "gemini-3.6-flash",
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                metaTitle: { type: Type.STRING, description: "The high-CTR Meta Title (under 60 chars)" },
+                metaDescription: { type: Type.STRING, description: "The Meta Description (under 160 chars)" },
+                urlSlug: { type: Type.STRING, description: "Recommended URL Slug" },
+                focusKeyword: { type: Type.STRING },
+                lsiKeywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+                markdown: { type: Type.STRING, description: "The fully formatted blog post in Markdown" },
+                schemaMarkup: { type: Type.STRING, description: "JSON-LD Schema Markup (Article / HowTo) as a string" }
+              },
+              required: ["metaTitle", "metaDescription", "urlSlug", "focusKeyword", "lsiKeywords", "markdown", "schemaMarkup"]
+            }
+          }
+        });
+      } else {
+        throw e;
       }
-    });
+    }
 
     const resultJson = JSON.parse(response.text || '{}');
     return NextResponse.json(resultJson);

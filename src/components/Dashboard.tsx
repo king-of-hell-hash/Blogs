@@ -1,6 +1,78 @@
 import React, { useState } from 'react';
 import Markdown from 'react-markdown';
-import { Settings, Play, Copy, FileCode2, Share2, Check, AlertCircle, BarChart, LayoutTemplate } from 'lucide-react';
+import { Settings, Play, Copy, FileCode2, Share2, Check, AlertCircle, BarChart, LayoutTemplate, Image as ImageIcon, Loader2 } from 'lucide-react';
+
+const CustomImage = (props: any) => {
+  const { alt, src } = props;
+  const [generating, setGenerating] = useState(false);
+  const [imgUrl, setImgUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const decodedPrompt = src ? decodeURIComponent(src) : '';
+
+  if (alt === 'image_prompt' || alt?.includes('image_prompt')) {
+    if (imgUrl) {
+      return (
+        <div className="my-6 text-center">
+           <img src={imgUrl} alt={decodedPrompt} className="rounded-xl border border-slate-200 shadow-sm max-w-full inline-block" />
+           <p className="text-xs text-slate-400 mt-2">Generated from prompt: {decodedPrompt}</p>
+        </div>
+      );
+    }
+    
+    const handleGenerate = async () => {
+      setGenerating(true);
+      setError(null);
+      try {
+        const res = await fetch('/api/generate-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: decodedPrompt }),
+        });
+        
+        if (!res.ok) {
+           const data = await res.json().catch(() => ({}));
+           throw new Error(data.error || "Failed to generate image");
+        }
+        
+        const data = await res.json();
+        if (data.image) {
+           setImgUrl(data.image);
+        } else {
+           throw new Error("No image data returned");
+        }
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setGenerating(false);
+      }
+    };
+
+    return (
+      <div className="my-6 p-6 rounded-xl bg-slate-50 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-center">
+        <div className="flex items-center text-slate-500 mb-2">
+           <ImageIcon className="w-5 h-5 mr-2" />
+           <span className="font-semibold text-sm">Image Generation Prompt</span>
+        </div>
+        <p className="text-slate-600 text-sm italic mb-4 max-w-md">"{decodedPrompt}"</p>
+        
+        {error && <p className="text-red-500 text-xs mb-3 max-w-sm">{error}</p>}
+        
+        <button
+          onClick={handleGenerate}
+          disabled={generating}
+          className="px-4 py-2 bg-white border border-slate-300 shadow-sm rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors disabled:opacity-50 flex items-center"
+        >
+          {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ImageIcon className="w-4 h-4 mr-2" />}
+          {generating ? 'Generating Image...' : 'Generate Image'}
+        </button>
+      </div>
+    );
+  }
+
+  // Fallback to regular image
+  return <img src={src} alt={alt} className="rounded-xl border border-slate-200 shadow-sm max-w-full" />;
+};
 
 export default function Dashboard() {
   const [keyword, setKeyword] = useState('');
@@ -375,7 +447,7 @@ ${data.schemaMarkup}
                 {generatedContent && !loading && (
                   activeTab === 'preview' ? (
                     <div className="prose prose-slate prose-indigo max-w-none">
-                      <Markdown>{generatedContent}</Markdown>
+                      <Markdown components={{ img: CustomImage }}>{generatedContent}</Markdown>
                     </div>
                   ) : (
                     <pre className="text-sm font-mono text-slate-700 whitespace-pre-wrap">
