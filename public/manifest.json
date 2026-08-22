@@ -29,6 +29,9 @@
   "launch_handler": {
     "client_mode": "focus-existing"
   },
+  "note_taking": {
+    "new_note_url": "/?action=new"
+  },
   "file_handlers": [
     {
       "action": "/",
@@ -36,7 +39,8 @@
       "icons": [
         {
           "src": "/icons/icon-192x192.png",
-          "sizes": "192x192"
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ],
       "accept": {
@@ -74,13 +78,21 @@
       "description": "Check status of recent AI blog generation",
       "tag": "blog-status",
       "template": "widget-template",
-      "ms_ac_template": "widgets/status.json",
-      "data": "widgets/status-data.json",
+      "ms_ac_template": "/widgets/status.json",
+      "data": "/widgets/status-data.json",
       "type": "application/json",
+      "screenshots": [
+        {
+          "src": "/screenshots/desktop-1280x720.png",
+          "sizes": "1280x720",
+          "label": "Desktop Preview"
+        }
+      ],
       "icons": [
         {
           "src": "/icons/icon-192x192.png",
-          "sizes": "192x192"
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ],
       "auth": false,
@@ -92,8 +104,50 @@
   },
   "icons": [
     {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
       "type": "image/png",
       "purpose": "any"
     },
@@ -134,8 +188,14 @@
       "url": "/?action=new",
       "icons": [
         {
+          "src": "/icons/icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        },
+        {
           "src": "/icons/icon-192x192.png",
-          "sizes": "192x192"
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     },
@@ -146,8 +206,14 @@
       "url": "/?tab=images",
       "icons": [
         {
+          "src": "/icons/icon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        },
+        {
           "src": "/icons/icon-192x192.png",
-          "sizes": "192x192"
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     }

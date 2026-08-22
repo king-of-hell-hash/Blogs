@@ -342,49 +342,46 @@ function getMobileScreenshotSvg(): string {
 async function main() {
   console.log('Generating valid PNG icons and screenshots with Sharp...');
 
-  // 1. icon-192x192.png (any)
-  const svg192 = getIconSvg(192, false);
-  await sharp(Buffer.from(svg192))
-    .png({ compressionLevel: 9 })
-    .toFile(path.join(ICONS_DIR, 'icon-192x192.png'));
-  console.log('✓ Created /public/icons/icon-192x192.png');
+  const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
+  for (const size of iconSizes) {
+    const svg = getIconSvg(size, false);
+    await sharp(Buffer.from(svg))
+      .png({ compressionLevel: 9 })
+      .toFile(path.join(ICONS_DIR, `icon-${size}x${size}.png`));
+    console.log(`✓ Created /public/icons/icon-${size}x${size}.png`);
+  }
 
-  // 2. icon-512x512.png (any)
-  const svg512 = getIconSvg(512, false);
-  await sharp(Buffer.from(svg512))
-    .png({ compressionLevel: 9 })
-    .toFile(path.join(ICONS_DIR, 'icon-512x512.png'));
-  console.log('✓ Created /public/icons/icon-512x512.png');
+  // Maskable icons
+  for (const size of [192, 512]) {
+    const svgMaskable = getIconSvg(size, true);
+    await sharp(Buffer.from(svgMaskable))
+      .png({ compressionLevel: 9 })
+      .toFile(path.join(ICONS_DIR, `icon-${size}x${size}-maskable.png`));
+    console.log(`✓ Created /public/icons/icon-${size}x${size}-maskable.png`);
+  }
 
-  // 3. icon-512x512-maskable.png (maskable with safe area)
-  const svg512Maskable = getIconSvg(512, true);
-  await sharp(Buffer.from(svg512Maskable))
-    .png({ compressionLevel: 9 })
-    .toFile(path.join(ICONS_DIR, 'icon-512x512-maskable.png'));
-  console.log('✓ Created /public/icons/icon-512x512-maskable.png');
-
-  // 4. apple-touch-icon.png (180x180)
+  // Apple touch icon (180x180)
   const svg180 = getIconSvg(180, false);
   await sharp(Buffer.from(svg180))
     .png({ compressionLevel: 9 })
     .toFile(path.join(PUBLIC_DIR, 'apple-touch-icon.png'));
   console.log('✓ Created /public/apple-touch-icon.png');
 
-  // 5. favicon.png (64x64)
+  // Favicon (64x64)
   const svg64 = getIconSvg(64, false);
   await sharp(Buffer.from(svg64))
     .png({ compressionLevel: 9 })
     .toFile(path.join(PUBLIC_DIR, 'favicon.png'));
   console.log('✓ Created /public/favicon.png');
 
-  // 6. desktop-1280x720.png (wide screenshot)
+  // Desktop screenshot (1280x720)
   const svgDesktop = getDesktopScreenshotSvg();
   await sharp(Buffer.from(svgDesktop))
     .png({ compressionLevel: 8 })
     .toFile(path.join(SCREENSHOTS_DIR, 'desktop-1280x720.png'));
   console.log('✓ Created /public/screenshots/desktop-1280x720.png');
 
-  // 7. mobile-750x1334.png (narrow screenshot)
+  // Mobile screenshot (750x1334)
   const svgMobile = getMobileScreenshotSvg();
   await sharp(Buffer.from(svgMobile))
     .png({ compressionLevel: 8 })
