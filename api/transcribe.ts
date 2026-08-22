@@ -1,4 +1,4 @@
-import { handleTranscribeAudio } from '../src/server/core';
+import { handleTranscribeAudio } from './_core';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';

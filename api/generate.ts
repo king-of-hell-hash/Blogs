@@ -1,4 +1,4 @@
-import { handleGenerateBlogPost } from '../src/server/core';
+import { handleGenerateBlogPost } from './_core';
 
 // Set maximum allowed duration on Vercel (60 seconds for Hobby, up to 300s on Pro)
 export const maxDuration = 60;
