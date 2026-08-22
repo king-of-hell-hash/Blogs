@@ -1,6 +1,6 @@
 {
   "name": "SEO Blog Dashboard",
-  "description": "An AI-powered SEO Blog Dashboard that generates high-CTR meta tags, formatted markdown content, and transcribes voice ideas with Gemini AI.",
-  "requestFramePermissions": ["microphone"],
+  "description": "An AI-powered SEO Blog Dashboard that generates high-CTR meta tags, formatted markdown content, and optimizes monetization and multimedia placements.",
+  "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

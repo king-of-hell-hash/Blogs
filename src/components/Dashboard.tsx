@@ -1,23 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Settings, Play, Copy, FileCode2, Share2, Check, AlertCircle, BarChart,
   LayoutTemplate, Image as ImageIcon, Loader2, Globe, Sparkles, Download,
   RefreshCw, Search, ShieldCheck, CheckCircle2, FileText, ArrowRight,
-  HelpCircle, Sliders, ExternalLink, Zap, SlidersHorizontal, Grid, Bell,
-  Mic, Radio, Volume2
+  HelpCircle, Sliders, ExternalLink, Zap, SlidersHorizontal, Grid
 } from 'lucide-react';
 import BlogPreview from './BlogPreview';
 import ResearchSources from './ResearchSources';
 import SeoMetadataPanel from './SeoMetadataPanel';
 import ImageBlock from './ImageBlock';
-import { AudioTranscriber } from './AudioTranscriber';
 import { GeneratedBlogResponse, ImagePlaceholder, ArticleLengthOption } from '../types';
-import {
-  subscribeToPushNotifications,
-  notifyBlogGenerationComplete,
-  registerBackgroundSync,
-  registerPeriodicSync
-} from '../utils/pwaPush';
 
 export default function Dashboard() {
   // Generation Parameters
@@ -41,60 +33,15 @@ export default function Dashboard() {
   const [batchGeneratingImages, setBatchGeneratingImages] = useState(false);
   const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
-  const [showVoiceModal, setShowVoiceModal] = useState(false);
 
   // Result State
   const [blogData, setBlogData] = useState<GeneratedBlogResponse | null>(null);
   const [editableMarkdown, setEditableMarkdown] = useState('');
-  const [activeTab, setActiveTab] = useState<'preview' | 'images' | 'research' | 'seo' | 'markdown' | 'transcribe'>('preview');
+  const [activeTab, setActiveTab] = useState<'preview' | 'images' | 'research' | 'seo' | 'markdown'>('preview');
 
   // Copy States
   const [copiedMd, setCopiedMd] = useState(false);
   const [copiedHtml, setCopiedHtml] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(
-    typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted'
-  );
-
-  // Initialize PWA Handlers (Share Target, Protocol Handler, File Handler, Background Sync)
-  useEffect(() => {
-    // 1. Process URL query parameters (Share Target, Protocol Handlers, Shortcuts)
-    const params = new URLSearchParams(window.location.search);
-    const sharedTopic = params.get('topic') || params.get('share_text') || params.get('share_title') || params.get('share_url');
-    if (sharedTopic) {
-      setKeyword(sharedTopic);
-    }
-    const tabParam = params.get('tab');
-    if (tabParam === 'images' || tabParam === 'preview' || tabParam === 'research' || tabParam === 'seo' || tabParam === 'markdown' || tabParam === 'transcribe') {
-      setActiveTab(tabParam as any);
-    }
-
-    // 2. W3C File Handlers (Launch Queue for .md and .txt files)
-    if ('launchQueue' in window && typeof (window as any).launchQueue.setConsumer === 'function') {
-      (window as any).launchQueue.setConsumer(async (launchParams: any) => {
-        if (!launchParams.files || !launchParams.files.length) return;
-        for (const fileHandle of launchParams.files) {
-          const file = await fileHandle.getFile();
-          const text = await file.text();
-          if (text) {
-            setEditableMarkdown(text);
-            setActiveTab('markdown');
-            setKeyword(file.name.replace(/\.[^/.]+$/, ''));
-          }
-        }
-      });
-    }
-
-    // 3. Register Periodic Sync (if supported & allowed)
-    registerPeriodicSync('refresh-trending-topics');
-  }, []);
-
-  // Request Notification permission
-  const handleEnableNotifications = async () => {
-    const res = await subscribeToPushNotifications();
-    if (res.success) {
-      setNotificationsEnabled(true);
-    }
-  };
 
   // Keyword inspiration chips
   const inspirationKeywords = [
@@ -104,10 +51,9 @@ export default function Dashboard() {
     'Clean Energy & Solar Power Buyer Guide'
   ];
 
-  const handleGenerate = async (overrideKeyword?: string) => {
-    const activeKeyword = (overrideKeyword !== undefined ? overrideKeyword : keyword).trim();
-    if (!activeKeyword) {
-      setError('Please enter a target keyword or topic, or dictate using your microphone.');
+  const handleGenerate = async () => {
+    if (!keyword.trim()) {
+      setError('Please enter a target keyword or topic.');
       return;
     }
 
@@ -119,7 +65,7 @@ export default function Dashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          keyword: activeKeyword,
+          keyword: keyword.trim(),
           audience,
           intent,
           tone,
@@ -135,31 +81,13 @@ export default function Dashboard() {
       });
 
       if (!res.ok) {
+        const contentType = res.headers.get('content-type');
         let errMsg = 'Failed to generate blog post';
-        try {
-          const rawText = await res.text();
-          try {
-            const errJson = JSON.parse(rawText);
-            errMsg = errJson.error || errJson.message || errJson.details || errMsg;
-          } catch {
-            if (rawText && rawText.trim().length > 0) {
-              if (rawText.includes('FUNCTION_INVOCATION_FAILED')) {
-                errMsg = 'Vercel Serverless Function error (FUNCTION_INVOCATION_FAILED). Ensure GEMINI_API_KEY is configured under Vercel Project Settings → Environment Variables and that the latest deployment is redeployed.';
-              } else {
-                errMsg = rawText.slice(0, 300);
-              }
-            }
-          }
-        } catch {
-          if (res.status === 404) {
-            errMsg = 'Server API endpoint returned 404. Ensure GEMINI_API_KEY is configured in Vercel Project Settings > Environment Variables.';
-          } else {
-            errMsg = `Server error (${res.status}): ${res.statusText || 'Unable to connect to AI generation API'}`;
-          }
-        }
-
-        if (res.status === 404) {
-          errMsg = 'Server API endpoint returned 404. Ensure your server or Vercel serverless function at /api/generate is deployed and GEMINI_API_KEY is configured in Vercel Project Settings > Environment Variables.';
+        if (contentType && contentType.includes('application/json')) {
+          const errJson = await res.json();
+          errMsg = errJson.error || errMsg;
+        } else {
+          errMsg = `Server error (${res.status})`;
         }
         throw new Error(errMsg);
       }
@@ -169,41 +97,14 @@ export default function Dashboard() {
       setEditableMarkdown(data.markdown || '');
       setActiveTab('preview');
 
-      // Send Push / System Notification when generation is finished
-      notifyBlogGenerationComplete(data.metaTitle || activeKeyword, data.wordCount);
-
       // If auto-generate images is checked, trigger image generation for placeholders
       if (autoGenerateImages && data.suggestedImages && data.suggestedImages.length > 0) {
         handleBatchGenerateImages(data.suggestedImages);
       }
     } catch (err: any) {
       setError(err.message || 'Generation failed');
-      // If offline, register background sync so request can sync when restored
-      if (!navigator.onLine) {
-        registerBackgroundSync('sync-blog-posts');
-      }
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleApplyTranscription = (text: string, actionType: 'topic' | 'notes' | 'generate' = 'topic') => {
-    if (!text) return;
-    const cleanText = text.trim();
-
-    if (actionType === 'topic') {
-      setKeyword(cleanText);
-      setShowVoiceModal(false);
-      if (activeTab === 'transcribe') {
-        setActiveTab('preview');
-      }
-    } else if (actionType === 'generate') {
-      setKeyword(cleanText);
-      setShowVoiceModal(false);
-      handleGenerate(cleanText);
-    } else if (actionType === 'notes') {
-      setAudience(prev => prev ? `${prev}\n\nVoice notes: ${cleanText}` : `Voice notes: ${cleanText}`);
-      setShowVoiceModal(false);
     }
   };
 
@@ -346,26 +247,6 @@ export default function Dashboard() {
           )}
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowVoiceModal(true)}
-              title="Record & Transcribe Audio with Gemini 3.5 Flash"
-              className="p-2 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 bg-violet-50 text-violet-700 border border-violet-200/80 hover:bg-violet-100 cursor-pointer"
-            >
-              <Mic className="w-4 h-4 text-violet-600" />
-              <span className="hidden sm:inline">Voice Dictation</span>
-            </button>
-            <button
-              onClick={handleEnableNotifications}
-              title={notificationsEnabled ? 'Push notifications active' : 'Enable notifications for background generation'}
-              className={`p-2 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
-                notificationsEnabled
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80 hover:bg-emerald-100'
-                  : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
-              }`}
-            >
-              <Bell className={`w-4 h-4 ${notificationsEnabled ? 'fill-emerald-500 text-emerald-600' : ''}`} />
-              <span className="hidden sm:inline">{notificationsEnabled ? 'Alerts On' : 'Alerts'}</span>
-            </button>
             {blogData && (
               <button
                 onClick={() => {
@@ -401,36 +282,16 @@ export default function Dashboard() {
               <div className="p-5 space-y-5">
                 {/* Keyword Input */}
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                      Target Keyword or Topic *
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setShowVoiceModal(true)}
-                      className="text-[11px] font-semibold text-violet-600 hover:text-violet-700 flex items-center gap-1 transition-colors cursor-pointer"
-                    >
-                      <Mic className="w-3 h-3" />
-                      Voice Input
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={keyword}
-                      onChange={(e) => setKeyword(e.target.value)}
-                      placeholder="e.g. 'best electric vehicles 2026' or speak..."
-                      className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all text-sm placeholder:text-slate-400 font-medium text-slate-800"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowVoiceModal(true)}
-                      title="Transcribe voice recording with Gemini 3.5 Flash"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-violet-50 hover:bg-violet-100 text-violet-600 transition-colors cursor-pointer"
-                    >
-                      <Mic className="w-4 h-4" />
-                    </button>
-                  </div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Target Keyword or Topic *
+                  </label>
+                  <input
+                    type="text"
+                    value={keyword}
+                    onChange={(e) => setKeyword(e.target.value)}
+                    placeholder="e.g. 'best electric vehicles 2026'"
+                    className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all text-sm placeholder:text-slate-400 font-medium text-slate-800"
+                  />
 
                   {/* Topic Suggestions */}
                   {!keyword && (
@@ -652,37 +513,15 @@ export default function Dashboard() {
 
                 {/* Error Banner */}
                 {error && (
-                  <div className="p-3.5 rounded-xl bg-red-50 border border-red-200/80 flex flex-col gap-2 text-xs text-red-700">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-start gap-2">
-                        <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
-                        <span className="font-medium leading-relaxed">{error}</span>
-                      </div>
-                      <button
-                        onClick={() => setError(null)}
-                        className="text-red-400 hover:text-red-700 text-xs font-bold px-1.5 py-0.5 rounded cursor-pointer"
-                        title="Dismiss error"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                    {error.toLowerCase().includes('gemini_api_key') && (
-                      <div className="bg-white/80 p-2.5 rounded-lg border border-red-100 text-[11px] text-slate-700 space-y-1 mt-1">
-                        <p className="font-semibold text-red-800">How to fix in Vercel:</p>
-                        <ol className="list-decimal pl-4 space-y-0.5 text-slate-600">
-                          <li>Go to <strong className="text-slate-800">Vercel Dashboard → Your Project → Settings → Environment Variables</strong></li>
-                          <li>Add Key: <code className="bg-slate-100 px-1 py-0.5 rounded text-indigo-700 font-mono">GEMINI_API_KEY</code></li>
-                          <li>Paste your Gemini API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-indigo-600 underline font-medium">Google AI Studio</a></li>
-                          <li>Redeploy your project or click <em>Promote to Production</em>.</li>
-                        </ol>
-                      </div>
-                    )}
+                  <div className="p-3.5 rounded-xl bg-red-50 border border-red-100 flex items-start text-xs text-red-600">
+                    <AlertCircle className="w-4 h-4 mr-2 mt-0.5 shrink-0" />
+                    <span>{error}</span>
                   </div>
                 )}
 
                 {/* Primary Action Button */}
                 <button
-                  onClick={() => handleGenerate()}
+                  onClick={handleGenerate}
                   disabled={loading}
                   className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-700 hover:from-indigo-700 hover:to-violet-800 text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                 >
@@ -776,13 +615,6 @@ export default function Dashboard() {
                     <FileCode2 className="w-3.5 h-3.5" />
                     Markdown Editor
                   </button>
-                  <button
-                    onClick={() => setActiveTab('transcribe')}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${activeTab === 'transcribe' ? 'bg-white text-violet-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
-                  >
-                    <Mic className="w-3.5 h-3.5 text-violet-600" />
-                    Voice Studio
-                  </button>
                 </div>
 
                 {/* Actions (Image Batch, Export, Copy) */}
@@ -831,11 +663,7 @@ export default function Dashboard() {
 
               {/* Viewport Content */}
               <div className="flex-1 p-6 sm:p-8 overflow-y-auto">
-                {activeTab === 'transcribe' ? (
-                  <div className="max-w-3xl mx-auto py-2">
-                    <AudioTranscriber onApplyTranscription={handleApplyTranscription} />
-                  </div>
-                ) : !blogData && !loading ? (
+                {!blogData && !loading && (
                   <div className="h-full min-h-[500px] flex flex-col items-center justify-center text-center p-8">
                     <div className="w-16 h-16 rounded-3xl bg-indigo-50 flex items-center justify-center text-indigo-600 mb-4 shadow-sm">
                       <LayoutTemplate className="w-8 h-8" />
@@ -863,26 +691,11 @@ export default function Dashboard() {
                           Strategically places hero banners and in-article diagrams where images are needed.
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveTab('transcribe');
-                        }}
-                        className="p-3.5 rounded-xl border border-violet-200 bg-violet-50/70 hover:bg-violet-100/80 transition-all text-left sm:col-span-2 cursor-pointer group"
-                      >
-                        <div className="flex items-center justify-between mb-1 text-xs font-bold text-violet-900">
-                          <span className="flex items-center gap-2">
-                            <Mic className="w-4 h-4 text-violet-600" /> Voice Dictation & Audio Studio (Gemini 3.5 Flash)
-                          </span>
-                          <ArrowRight className="w-3.5 h-3.5 text-violet-500 group-hover:translate-x-0.5 transition-transform" />
-                        </div>
-                        <p className="text-[11px] text-violet-700">
-                          Speak your blog ideas or upload voice memos to accurately transcribe and transform them into ranking articles.
-                        </p>
-                      </button>
                     </div>
                   </div>
-                ) : loading ? (
+                )}
+
+                {loading && (
                   <div className="h-full min-h-[500px] flex flex-col items-center justify-center text-center p-8">
                     <div className="relative mb-6">
                       <div className="w-16 h-16 rounded-full border-4 border-indigo-100 border-t-indigo-600 animate-spin" />
@@ -897,7 +710,9 @@ export default function Dashboard() {
                       Formulating E-E-A-T sections, placing multimedia visuals, structuring metadata, and optimizing schema.
                     </p>
                   </div>
-                ) : blogData ? (
+                )}
+
+                {blogData && !loading && (
                   <>
                     {activeTab === 'preview' && (
                       <BlogPreview
@@ -991,43 +806,13 @@ export default function Dashboard() {
                       </div>
                     )}
                   </>
-                ) : null}
+                )}
               </div>
             </div>
           </div>
 
         </div>
       </main>
-
-      {/* Voice Dictation & Audio Studio Modal */}
-      {showVoiceModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 relative border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-violet-100 flex items-center justify-center text-violet-700">
-                  <Mic className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-800">Voice Dictation Studio</h3>
-                  <p className="text-xs text-slate-500">Transcribe audio with Gemini 3.5 Flash</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowVoiceModal(false)}
-                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors text-sm font-bold px-2.5"
-              >
-                ✕
-              </button>
-            </div>
-            <AudioTranscriber
-              onApplyTranscription={(text, action) => {
-                handleApplyTranscription(text, action);
-              }}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
