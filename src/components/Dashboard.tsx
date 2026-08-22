@@ -131,15 +131,28 @@ export default function Dashboard() {
       });
 
       if (!res.ok) {
-        const contentType = res.headers.get('content-type');
         let errMsg = 'Failed to generate blog post';
-        if (contentType && contentType.includes('application/json')) {
-          const errJson = await res.json();
-          errMsg = errJson.error || errMsg;
-        } else if (res.status === 404) {
-          errMsg = 'Server API endpoint returned 404. If you recently deployed to Vercel, ensure the project includes the /api directory and that GEMINI_API_KEY is set in Vercel Project Settings > Environment Variables.';
-        } else {
-          errMsg = `Server error (${res.status}): ${res.statusText || 'Unable to connect to AI generation API'}`;
+        try {
+          const rawText = await res.text();
+          try {
+            const errJson = JSON.parse(rawText);
+            errMsg = errJson.error || errJson.message || errMsg;
+          } catch {
+            if (rawText && rawText.trim().length > 0) {
+              errMsg = rawText.slice(0, 300);
+            }
+          }
+        } catch {
+          // If reading response fails
+          if (res.status === 404) {
+            errMsg = 'Server API endpoint returned 404. If you recently deployed to Vercel, ensure the project includes the /api directory and that GEMINI_API_KEY is set in Vercel Project Settings > Environment Variables.';
+          } else {
+            errMsg = `Server error (${res.status}): ${res.statusText || 'Unable to connect to AI generation API'}`;
+          }
+        }
+
+        if (res.status === 404) {
+          errMsg = 'Server API endpoint returned 404. Ensure your server or Vercel serverless function at /api/generate is deployed and GEMINI_API_KEY is configured in Vercel Project Settings > Environment Variables.';
         }
         throw new Error(errMsg);
       }
@@ -584,9 +597,31 @@ export default function Dashboard() {
 
                 {/* Error Banner */}
                 {error && (
-                  <div className="p-3.5 rounded-xl bg-red-50 border border-red-100 flex items-start text-xs text-red-600">
-                    <AlertCircle className="w-4 h-4 mr-2 mt-0.5 shrink-0" />
-                    <span>{error}</span>
+                  <div className="p-3.5 rounded-xl bg-red-50 border border-red-200/80 flex flex-col gap-2 text-xs text-red-700">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+                        <span className="font-medium leading-relaxed">{error}</span>
+                      </div>
+                      <button
+                        onClick={() => setError(null)}
+                        className="text-red-400 hover:text-red-700 text-xs font-bold px-1.5 py-0.5 rounded cursor-pointer"
+                        title="Dismiss error"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    {error.toLowerCase().includes('gemini_api_key') && (
+                      <div className="bg-white/80 p-2.5 rounded-lg border border-red-100 text-[11px] text-slate-700 space-y-1 mt-1">
+                        <p className="font-semibold text-red-800">How to fix in Vercel:</p>
+                        <ol className="list-decimal pl-4 space-y-0.5 text-slate-600">
+                          <li>Go to <strong className="text-slate-800">Vercel Dashboard → Your Project → Settings → Environment Variables</strong></li>
+                          <li>Add Key: <code className="bg-slate-100 px-1 py-0.5 rounded text-indigo-700 font-mono">GEMINI_API_KEY</code></li>
+                          <li>Paste your Gemini API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-indigo-600 underline font-medium">Google AI Studio</a></li>
+                          <li>Redeploy your project or click <em>Promote to Production</em>.</li>
+                        </ol>
+                      </div>
+                    )}
                   </div>
                 )}
 

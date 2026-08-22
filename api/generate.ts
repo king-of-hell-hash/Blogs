@@ -1,7 +1,7 @@
 import { handleGenerateBlogPost } from '../src/server/core';
 
 export default async function handler(req: any, res: any) {
-  // Set CORS headers
+  // Set CORS and Content-Type headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -9,6 +9,7 @@ export default async function handler(req: any, res: any) {
     'Access-Control-Allow-Headers',
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -19,11 +20,18 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    let body = req.body;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch {
+        // use raw body as-is
+      }
+    }
     const result = await handleGenerateBlogPost(body);
     return res.status(result.status).json(result.data);
   } catch (error: any) {
-    console.error("Vercel Serverless Generate API Error:", error);
+    console.error("Serverless Generate API Error:", error);
     let errorMessage = "An error occurred while generating the blog post.";
     if (error.status === 429 || (error.message && error.message.includes("429"))) {
       errorMessage = "Gemini API rate limit reached. Please try again in a moment.";

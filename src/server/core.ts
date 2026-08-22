@@ -2,11 +2,11 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { getCuratedImageUrl } from '../utils/imageFallback';
 
 export function getCleanApiKey(): string {
-  const key = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '';
+  const key = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.API_KEY || '';
   const cleaned = key.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
   
   if (cleaned.length > 0 && (cleaned.includes(' ') || cleaned.length > 100)) {
-    throw new Error("Invalid GEMINI_API_KEY. It looks like you pasted a text prompt instead of a real API key.");
+    throw new Error("Invalid GEMINI_API_KEY format. Please check your API key in environment variables.");
   }
   
   return cleaned;
@@ -21,46 +21,54 @@ export async function executeGenerationWithFallbacks(
     trySearchGrounding: boolean;
   }
 ): Promise<{ text: string; groundingSources: any[]; groundingFallback: boolean }> {
-  const candidateModels = ['gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-3.1-flash-lite', 'gemini-3.1-pro-preview'];
+  // Official valid models according to Gemini API specifications
+  const candidateModels = ['gemini-3.7-flash', 'gemini-3.1-flash-lite', 'gemini-3.1-pro-preview'];
   let groundingSources: any[] = [];
   let groundingFallback = false;
 
-  // Step 1: If search grounding is requested, attempt it
+  // Step 1: If search grounding is requested, attempt it without responseSchema (since Gemini API does not allow combining search tools with responseSchema)
   if (params.trySearchGrounding) {
-    for (const model of candidateModels) {
-      try {
-        const res = await ai.models.generateContent({
-          model: model,
-          contents: params.prompt,
-          config: {
-            tools: [{ googleSearch: {} }],
-            responseMimeType: "application/json",
-            responseSchema: params.responseSchema
-          }
-        });
-
-        if (res.text) {
-          const chunks = res.candidates?.[0]?.groundingMetadata?.groundingChunks;
-          if (chunks && Array.isArray(chunks)) {
-            groundingSources = chunks
-              .filter((c: any) => c.web?.uri)
-              .map((c: any) => ({
-                title: c.web.title || new URL(c.web.uri).hostname,
-                url: c.web.uri,
-                snippet: c.web.title || ''
-              }));
-          }
-          return { text: res.text, groundingSources, groundingFallback: false };
+    try {
+      const searchPrompt = `${params.prompt}\n\nIMPORTANT: Output ONLY valid, raw JSON matching the required schema. Do not wrap in backticks or markdown fences if possible.`;
+      const res = await ai.models.generateContent({
+        model: 'gemini-3.7-flash',
+        contents: searchPrompt,
+        config: {
+          tools: [{ googleSearch: {} }]
         }
-      } catch (err: any) {
-        // Search tool limit or quota reached on free tier - transition smoothly to deep AI knowledge synthesis
-        groundingFallback = true;
-        break;
+      });
+
+      if (res.text) {
+        const chunks = res.candidates?.[0]?.groundingMetadata?.groundingChunks;
+        if (chunks && Array.isArray(chunks)) {
+          groundingSources = chunks
+            .filter((c: any) => c.web?.uri)
+            .map((c: any) => ({
+              title: c.web.title || new URL(c.web.uri).hostname,
+              url: c.web.uri,
+              snippet: c.web.title || ''
+            }));
+        }
+
+        // Validate that JSON can be parsed
+        try {
+          const parsed = parseGeneratedJson(res.text);
+          if (parsed && (parsed.metaTitle || parsed.markdown)) {
+            return { text: res.text, groundingSources, groundingFallback: false };
+          }
+        } catch {
+          // JSON parsing failed, fallback to structured output mode in Step 2
+          groundingFallback = true;
+        }
       }
+    } catch (err: any) {
+      console.warn("Search grounding tool notice:", err?.message || err);
+      // Search tool unavailable or quota reached - smoothly transition to structured AI generation
+      groundingFallback = true;
     }
   }
 
-  // Step 2: Standard JSON generation across candidate models with retry
+  // Step 2: Standard structured JSON generation across candidate models with retry
   let lastError: any = null;
   for (const model of candidateModels) {
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -79,9 +87,10 @@ export async function executeGenerationWithFallbacks(
         }
       } catch (err: any) {
         lastError = err;
-        // If 503 (high demand) or 429, wait 350ms before retrying or switching models
+        console.warn(`Attempt ${attempt + 1} with model ${model} failed:`, err?.message || err);
+        // If 503 (high demand) or 429, wait before retrying or switching models
         if (err.status === 503 || err.status === 429) {
-          await new Promise(resolve => setTimeout(resolve, 350));
+          await new Promise(resolve => setTimeout(resolve, 400));
         } else {
           break;
         }
@@ -89,7 +98,7 @@ export async function executeGenerationWithFallbacks(
     }
   }
 
-  throw lastError || new Error("All model endpoints are currently experiencing high demand. Please try again in a few moments.");
+  throw lastError || new Error("All AI model endpoints are currently experiencing high demand. Please try again in a few moments.");
 }
 
 export function parseGeneratedJson(rawText: string): any {
