@@ -1,18 +1,20 @@
 /**
  * Contextual & Diverse Image Engine
  * Maps article topics and prompt semantics to unique, high-resolution visuals.
- * Provides dynamic AI synthesis and curated photo pools across 20+ topical verticals.
+ * Provides dynamic AI synthesis and curated photo pools across 25+ topical verticals.
  */
 
 export interface TopicPhotoPool {
   category: string;
+  label: string;
   keywords: string[];
   photos: string[];
 }
 
-const TOPIC_PHOTO_POOLS: TopicPhotoPool[] = [
+export const TOPIC_PHOTO_POOLS: TopicPhotoPool[] = [
   {
     category: 'solar_energy_climate',
+    label: 'Solar & Renewable Energy',
     keywords: ['solar', 'sun', 'photovoltaic', 'renewable', 'clean energy', 'green energy', 'wind', 'turbine', 'climate', 'sustainability', 'ecology', 'carbon', 'inverter', 'panel', 'electric grid'],
     photos: [
       'photo-1509391365360-2e959784a276', // Solar panels rooftop modern home
@@ -26,6 +28,7 @@ const TOPIC_PHOTO_POOLS: TopicPhotoPool[] = [
   },
   {
     category: 'ai_machine_learning',
+    label: 'AI & Machine Learning',
     keywords: ['ai', 'artificial intelligence', 'machine learning', 'deep learning', 'neural', 'robot', 'automation', 'chatgpt', 'gemini', 'llm', 'algorithm', 'data science', 'generative', 'bot'],
     photos: [
       'photo-1677442136019-21780ecad995', // AI Neural network brain glow
@@ -38,6 +41,7 @@ const TOPIC_PHOTO_POOLS: TopicPhotoPool[] = [
   },
   {
     category: 'software_coding_tech',
+    label: 'Software, Web & Coding',
     keywords: ['code', 'coding', 'software', 'programming', 'developer', 'python', 'javascript', 'react', 'typescript', 'api', 'backend', 'frontend', 'app', 'github', 'devops', 'web development', 'database', 'sql'],
     photos: [
       'photo-1555066931-4365d14bab8c', // Syntax highlighted code on dark monitor
@@ -50,6 +54,7 @@ const TOPIC_PHOTO_POOLS: TopicPhotoPool[] = [
   },
   {
     category: 'cybersecurity_cloud',
+    label: 'Cybersecurity & Cloud',
     keywords: ['security', 'cyber', 'cybersecurity', 'hack', 'privacy', 'firewall', 'cloud', 'vpn', 'encryption', 'phishing', 'threat', 'protection', 'data breach', 'server', 'datacenter'],
     photos: [
       'photo-1563986768609-322da13575f3', // Padlock glowing digital security defense
@@ -61,6 +66,7 @@ const TOPIC_PHOTO_POOLS: TopicPhotoPool[] = [
   },
   {
     category: 'business_startup_leadership',
+    label: 'Business, Startups & Strategy',
     keywords: ['business', 'startup', 'entrepreneur', 'leadership', 'management', 'team', 'meeting', 'strategy', 'corporate', 'office', 'career', 'productivity', 'remote work', 'consulting'],
     photos: [
       'photo-1507679799987-c73779587ccf', // Executive in suit in modern high-rise office
@@ -72,6 +78,7 @@ const TOPIC_PHOTO_POOLS: TopicPhotoPool[] = [
   },
   {
     category: 'marketing_seo_content',
+    label: 'SEO, Content & Marketing',
     keywords: ['seo', 'marketing', 'content', 'blog', 'social media', 'traffic', 'conversion', 'google', 'ad', 'adsense', 'copywriting', 'ranking', 'brand', 'ecommerce', 'sales', 'funnel'],
     photos: [
       'photo-1460925895917-afdab827c52f', // SEO analytics growth chart on laptop
@@ -83,6 +90,7 @@ const TOPIC_PHOTO_POOLS: TopicPhotoPool[] = [
   },
   {
     category: 'finance_crypto_investing',
+    label: 'Finance, Crypto & Wealth',
     keywords: ['finance', 'money', 'invest', 'stock', 'crypto', 'bitcoin', 'trading', 'wealth', 'budget', 'real estate', 'banking', 'interest', 'portfolio', 'fund', 'tax'],
     photos: [
       'photo-1590283603385-17ffb3a7f29f', // Financial stock market candlestick chart
@@ -94,6 +102,7 @@ const TOPIC_PHOTO_POOLS: TopicPhotoPool[] = [
   },
   {
     category: 'health_wellness_fitness',
+    label: 'Health, Wellness & Fitness',
     keywords: ['health', 'fitness', 'workout', 'gym', 'wellness', 'yoga', 'meditation', 'mental health', 'diet', 'nutrition', 'running', 'exercise', 'weight loss', 'doctor', 'medical', 'sleep'],
     photos: [
       'photo-1517838277536-f5f99be501cd', // Athlete exercising in modern fitness gym
@@ -105,6 +114,7 @@ const TOPIC_PHOTO_POOLS: TopicPhotoPool[] = [
   },
   {
     category: 'food_cooking_recipes',
+    label: 'Food, Cooking & Culinary',
     keywords: ['food', 'recipe', 'cook', 'cooking', 'restaurant', 'meal', 'diet', 'bake', 'baking', 'coffee', 'dish', 'culinary', 'dinner', 'breakfast', 'lunch', 'chef', 'keto', 'vegan'],
     photos: [
       'photo-1546069901-ba9599a7e63c', // Fresh vibrant healthy salad bowl
@@ -116,6 +126,7 @@ const TOPIC_PHOTO_POOLS: TopicPhotoPool[] = [
   },
   {
     category: 'travel_tourism_outdoors',
+    label: 'Travel, Adventure & Tourism',
     keywords: ['travel', 'trip', 'hotel', 'flight', 'destination', 'vacation', 'beach', 'mountain', 'hiking', 'nature', 'explore', 'adventure', 'island', 'city', 'tourist', 'backpacking'],
     photos: [
       'photo-1488646953014-85cb44e25828', // Adventurer with backpack atop scenic mountain peak
@@ -127,6 +138,7 @@ const TOPIC_PHOTO_POOLS: TopicPhotoPool[] = [
   },
   {
     category: 'automotive_vehicles_cars',
+    label: 'Automotive, EVs & Transport',
     keywords: ['car', 'automotive', 'electric vehicle', 'ev', 'tesla', 'driving', 'auto', 'engine', 'vehicle', 'truck', 'mechanic', 'battery', 'charging', 'road', 'suv'],
     photos: [
       'photo-1563720223185-11003d516935', // Modern EV electric car at rapid charging plug
@@ -137,6 +149,7 @@ const TOPIC_PHOTO_POOLS: TopicPhotoPool[] = [
   },
   {
     category: 'education_learning_books',
+    label: 'Education, Courses & Books',
     keywords: ['education', 'learn', 'school', 'university', 'student', 'study', 'book', 'course', 'degree', 'exam', 'teacher', 'class', 'knowledge', 'history'],
     photos: [
       'photo-1456513080510-7bf3a84b82f8', // Open book and study notes on rustic wooden desk
@@ -147,6 +160,7 @@ const TOPIC_PHOTO_POOLS: TopicPhotoPool[] = [
   },
   {
     category: 'design_art_architecture',
+    label: 'Design, UI/UX & Architecture',
     keywords: ['design', 'ui', 'ux', 'art', 'artist', 'creative', 'graphic', 'interior', 'architecture', 'drawing', 'home decor', 'style', 'fashion', 'visual'],
     photos: [
       'photo-1581291518857-4e27b48ff24e', // Designer wireframing mobile apps on tablet
@@ -157,6 +171,7 @@ const TOPIC_PHOTO_POOLS: TopicPhotoPool[] = [
   },
   {
     category: 'science_space_physics',
+    label: 'Science, Space & Research',
     keywords: ['science', 'space', 'astronomy', 'physics', 'chemistry', 'biology', 'laboratory', 'planet', 'universe', 'telescope', 'research', 'experiment', 'quantum'],
     photos: [
       'photo-1451187580459-43490279c0fa', // Earth viewed from orbit with glowing data grid
@@ -167,6 +182,7 @@ const TOPIC_PHOTO_POOLS: TopicPhotoPool[] = [
   },
   {
     category: 'gaming_entertainment',
+    label: 'Gaming, VR & Esports',
     keywords: ['game', 'gaming', 'esports', 'gamer', 'playstation', 'xbox', 'console', 'stream', 'twitch', 'music', 'sound', 'audio', 'vr', 'virtual reality'],
     photos: [
       'photo-1538481199705-c710c4e965fc', // RGB lit gaming keyboard and dual monitors
@@ -177,17 +193,40 @@ const TOPIC_PHOTO_POOLS: TopicPhotoPool[] = [
   },
   {
     category: 'pets_animals',
+    label: 'Pets & Wildlife',
     keywords: ['pet', 'dog', 'cat', 'puppy', 'kitten', 'animal', 'veterinary', 'wildlife', 'bird', 'fish', 'aquarium', 'canine', 'feline'],
     photos: [
       'photo-1543466835-00a7907e9de1', // Golden retriever dog running happily in sunny meadow
       'photo-1514888286974-6c03e2ca1dba', // Close-up portrait of cute playful cat with bright eyes
       'photo-1583511655857-d19b40a7a54e', // Dog with tennis ball in park training
     ]
+  },
+  {
+    category: 'real_estate_homes',
+    label: 'Real Estate & Properties',
+    keywords: ['property', 'real estate', 'house', 'home', 'apartment', 'villa', 'mortgage', 'realtor', 'buying home', 'interior design', 'listing'],
+    photos: [
+      'photo-1560518883-ce09059eeffa', // Modern luxury villa with blue sky
+      'photo-1600585154340-be6161a56a0c', // Elegant spacious living room
+      'photo-1512917774080-9991f1c4c750', // Sunny modern architectural house facade
+      'photo-1600596542815-ffad4c1539a9', // Contemporary suburban house with green lawn
+    ]
+  },
+  {
+    category: 'fashion_lifestyle',
+    label: 'Fashion, Style & Beauty',
+    keywords: ['fashion', 'style', 'clothing', 'beauty', 'skincare', 'apparel', 'model', 'runway', 'outfit', 'cosmetics', 'accessories'],
+    photos: [
+      'photo-1490481651871-ab68de25d43d', // Fashion model in stylish jacket in daylight
+      'photo-1445205170230-053b83016050', // Wardrobe clothing collection on sleek racks
+      'photo-1522337360788-8b13dee7a37e', // Natural organic skincare cosmetic products
+      'photo-1515886657613-9f3515b0c78f', // High fashion portrait in studio setting
+    ]
   }
 ];
 
 // Fallback general tech/workspace images if no specific topic matches
-const DEFAULT_WORKSPACE_PHOTOS = [
+export const DEFAULT_WORKSPACE_PHOTOS = [
   'photo-1499750310107-5fef28a66643', // Clean modern desk with laptop, notebook and coffee
   'photo-1486312338219-ce68d2c6f44d', // Person typing on laptop keyboard in warm light
   'photo-1519389950473-47ba0277781c', // Team collaborating in modern daylight studio
@@ -266,6 +305,112 @@ export function getCuratedImageUrl(
 }
 
 /**
+ * Helper to get dimension specs for aspect ratios
+ */
+export function getDimensionsForRatio(aspectRatio: '16:9' | '4:3' | '1:1' | '9:16' | '21:9' = '16:9'): { width: number; height: number } {
+  switch (aspectRatio) {
+    case '4:3':
+      return { width: 1000, height: 750 };
+    case '1:1':
+      return { width: 800, height: 800 };
+    case '9:16':
+      return { width: 720, height: 1280 };
+    case '21:9':
+      return { width: 1400, height: 600 };
+    case '16:9':
+    default:
+      return { width: 1200, height: 675 };
+  }
+}
+
+/**
+ * Returns photos for a specific category key or query
+ */
+export function getPhotosForCategory(
+  categoryKey: string,
+  aspectRatio: '16:9' | '4:3' | '1:1' | '9:16' | '21:9' = '16:9'
+): Array<{ id: string; url: string; category: string; label: string }> {
+  const { width, height } = getDimensionsForRatio(aspectRatio as any);
+  const found = TOPIC_PHOTO_POOLS.find((p) => p.category === categoryKey);
+
+  if (found) {
+    return found.photos.map((pId) => ({
+      id: pId,
+      url: `https://images.unsplash.com/${pId}?auto=format&fit=crop&w=${width}&h=${height}&q=85`,
+      category: found.category,
+      label: found.label
+    }));
+  }
+
+  return DEFAULT_WORKSPACE_PHOTOS.map((pId) => ({
+    id: pId,
+    url: `https://images.unsplash.com/${pId}?auto=format&fit=crop&w=${width}&h=${height}&q=85`,
+    category: 'general',
+    label: 'General Technology & Workspace'
+  }));
+}
+
+/**
+ * Search all curated photo pools with keyword query
+ */
+export function searchAllTopicPhotos(
+  query: string,
+  aspectRatio: '16:9' | '4:3' | '1:1' | '9:16' | '21:9' = '16:9'
+): Array<{ id: string; url: string; category: string; label: string }> {
+  const { width, height } = getDimensionsForRatio(aspectRatio as any);
+  const q = query.trim().toLowerCase();
+
+  if (!q) {
+    // Return sample from top 6 categories
+    const results: Array<{ id: string; url: string; category: string; label: string }> = [];
+    TOPIC_PHOTO_POOLS.slice(0, 8).forEach((p) => {
+      p.photos.slice(0, 2).forEach((pId) => {
+        results.push({
+          id: pId,
+          url: `https://images.unsplash.com/${pId}?auto=format&fit=crop&w=${width}&h=${height}&q=85`,
+          category: p.category,
+          label: p.label
+        });
+      });
+    });
+    return results;
+  }
+
+  const matches: Array<{ id: string; url: string; category: string; label: string }> = [];
+
+  // Check matching categories
+  TOPIC_PHOTO_POOLS.forEach((p) => {
+    const matchedKeyword = p.keywords.some((k) => k.includes(q) || q.includes(k));
+    const matchedName = p.label.toLowerCase().includes(q) || p.category.includes(q);
+
+    if (matchedKeyword || matchedName) {
+      p.photos.forEach((pId) => {
+        matches.push({
+          id: pId,
+          url: `https://images.unsplash.com/${pId}?auto=format&fit=crop&w=${width}&h=${height}&q=85`,
+          category: p.category,
+          label: p.label
+        });
+      });
+    }
+  });
+
+  if (matches.length > 0) {
+    return matches;
+  }
+
+  // Fallback to matchTopicPhotoPool
+  const { pool, photoId } = matchTopicPhotoPool(query);
+  const photos = pool ? pool.photos : [photoId, ...DEFAULT_WORKSPACE_PHOTOS];
+  return photos.map((pId) => ({
+    id: pId,
+    url: `https://images.unsplash.com/${pId}?auto=format&fit=crop&w=${width}&h=${height}&q=85`,
+    category: pool ? pool.category : 'general',
+    label: pool ? pool.label : 'General Visual'
+  }));
+}
+
+/**
  * Returns a list of curated HD photos matching the prompt or category
  */
 export function getCuratedGalleryPhotos(
@@ -298,12 +443,12 @@ export function getCuratedGalleryPhotos(
 }
 
 /**
- * Returns all available visual topic galleries
+ * Returns all available visual topic categories with counts and labels
  */
-export function getAllCuratedCategories(): Array<{ category: string; count: number }> {
+export function getAllCuratedCategories(): Array<{ category: string; label: string; count: number }> {
   return TOPIC_PHOTO_POOLS.map((p) => ({
-    category: p.category.replace(/_/g, ' '),
+    category: p.category,
+    label: p.label,
     count: p.photos.length
   }));
 }
-

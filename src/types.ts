@@ -1,3 +1,23 @@
+export interface ImageFilterSettings {
+  brightness?: number; // 60 - 140, default 100
+  contrast?: number; // 60 - 140, default 100
+  saturate?: number; // 0 - 200, default 100
+  grayscale?: number; // 0 - 100, default 0
+  sepia?: number; // 0 - 100, default 0
+  blur?: number; // 0 - 8, default 0
+  hueRotate?: number; // 0 - 360, default 0
+  preset?: string;
+}
+
+export interface ImageOverlaySettings {
+  enabled: boolean;
+  title?: string;
+  subtitle?: string;
+  badge?: string;
+  position?: 'bottom' | 'center' | 'top';
+  style?: 'dark_glass' | 'light_solid' | 'gradient_banner' | 'minimal';
+}
+
 export interface ImagePlaceholder {
   id: string;
   placeholderId: string;
@@ -5,12 +25,14 @@ export interface ImagePlaceholder {
   altText: string;
   caption?: string;
   placement: 'hero' | 'section' | 'diagram' | 'comparison' | 'conclusion';
-  aspectRatio?: '16:9' | '4:3' | '1:1' | '9:16';
+  aspectRatio?: '16:9' | '4:3' | '1:1' | '9:16' | '21:9';
   generatedUrl?: string;
   isGenerating?: boolean;
   error?: string;
   isFallback?: boolean;
   fallbackReason?: string;
+  filters?: ImageFilterSettings;
+  overlay?: ImageOverlaySettings;
 }
 
 export interface GroundingSource {
