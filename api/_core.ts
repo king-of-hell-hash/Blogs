@@ -21,15 +21,19 @@ export async function executeGenerationWithFallbacks(
     trySearchGrounding: boolean;
   }
 ): Promise<{ text: string; groundingSources: any[]; groundingFallback: boolean }> {
-  // Official valid models according to Gemini API specifications
-  const candidateModels = ['gemini-3.7-flash', 'gemini-3.1-flash-lite', 'gemini-3.1-pro-preview'];
+  // Ordered fallback models: prioritize fastest high-availability models if primary is under load
+  const candidateModels = [
+    'gemini-3.7-flash',
+    'gemini-3.1-flash-lite',
+    'gemini-3.1-pro-preview'
+  ];
   let groundingSources: any[] = [];
   let groundingFallback = false;
 
-  // Step 1: If search grounding is requested, attempt it without responseSchema (since Gemini API does not allow combining search tools with responseSchema)
+  // Step 1: If search grounding is requested, attempt it
   if (params.trySearchGrounding) {
     try {
-      const searchPrompt = `${params.prompt}\n\nIMPORTANT: Output ONLY valid, raw JSON matching the required schema. Do not wrap in backticks or markdown fences if possible.`;
+      const searchPrompt = `${params.prompt}\n\nIMPORTANT: Output ONLY valid, raw JSON matching the required schema. Do not wrap in backticks or markdown fences.`;
       const res = await ai.models.generateContent({
         model: 'gemini-3.7-flash',
         contents: searchPrompt,
@@ -50,28 +54,26 @@ export async function executeGenerationWithFallbacks(
             }));
         }
 
-        // Validate that JSON can be parsed
         try {
           const parsed = parseGeneratedJson(res.text);
           if (parsed && (parsed.metaTitle || parsed.markdown)) {
             return { text: res.text, groundingSources, groundingFallback: false };
           }
         } catch {
-          // JSON parsing failed, fallback to structured output mode in Step 2
           groundingFallback = true;
         }
       }
     } catch (err: any) {
-      console.warn("Search grounding tool notice:", err?.message || err);
-      // Search tool unavailable or quota reached - smoothly transition to structured AI generation
+      console.warn("Search grounding tool notice (falling back to direct schema generation):", err?.message || err);
       groundingFallback = true;
     }
   }
 
-  // Step 2: Standard structured JSON generation across candidate models with retry
+  // Step 2: Standard structured JSON generation across candidate models with exponential backoff & fast failover
   let lastError: any = null;
   for (const model of candidateModels) {
-    for (let attempt = 0; attempt < 2; attempt++) {
+    const maxAttempts = 2;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         const res = await ai.models.generateContent({
           model: model,
@@ -87,11 +89,16 @@ export async function executeGenerationWithFallbacks(
         }
       } catch (err: any) {
         lastError = err;
-        console.warn(`Attempt ${attempt + 1} with model ${model} failed:`, err?.message || err);
-        // If 503 (high demand) or 429, wait before retrying or switching models
-        if (err.status === 503 || err.status === 429) {
-          await new Promise(resolve => setTimeout(resolve, 400));
+        const status = err?.status || err?.statusCode || (err?.message?.includes("503") ? 503 : (err?.message?.includes("429") ? 429 : 500));
+        console.warn(`Attempt ${attempt} with model ${model} failed (status ${status}):`, err?.message || err);
+
+        // If 503 (model overloaded) or 429 (rate limit), pause briefly with backoff or switch to next model immediately
+        if (status === 503 || status === 429) {
+          if (attempt < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, attempt * 800));
+          }
         } else {
+          // If non-transient error, move immediately to next model
           break;
         }
       }
