@@ -1,15 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Settings, Play, Copy, FileCode2, Share2, Check, AlertCircle, BarChart,
   LayoutTemplate, Image as ImageIcon, Loader2, Globe, Sparkles, Download,
   RefreshCw, Search, ShieldCheck, CheckCircle2, FileText, ArrowRight,
-  HelpCircle, Sliders, ExternalLink, Zap, SlidersHorizontal, Grid
+  HelpCircle, Sliders, ExternalLink, Zap, SlidersHorizontal, Grid, Bell
 } from 'lucide-react';
 import BlogPreview from './BlogPreview';
 import ResearchSources from './ResearchSources';
 import SeoMetadataPanel from './SeoMetadataPanel';
 import ImageBlock from './ImageBlock';
 import { GeneratedBlogResponse, ImagePlaceholder, ArticleLengthOption } from '../types';
+import {
+  subscribeToPushNotifications,
+  notifyBlogGenerationComplete,
+  registerBackgroundSync,
+  registerPeriodicSync
+} from '../utils/pwaPush';
 
 export default function Dashboard() {
   // Generation Parameters
@@ -42,6 +48,50 @@ export default function Dashboard() {
   // Copy States
   const [copiedMd, setCopiedMd] = useState(false);
   const [copiedHtml, setCopiedHtml] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(
+    typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted'
+  );
+
+  // Initialize PWA Handlers (Share Target, Protocol Handler, File Handler, Background Sync)
+  useEffect(() => {
+    // 1. Process URL query parameters (Share Target, Protocol Handlers, Shortcuts)
+    const params = new URLSearchParams(window.location.search);
+    const sharedTopic = params.get('topic') || params.get('share_text') || params.get('share_title') || params.get('share_url');
+    if (sharedTopic) {
+      setKeyword(sharedTopic);
+    }
+    const tabParam = params.get('tab');
+    if (tabParam === 'images' || tabParam === 'preview' || tabParam === 'research' || tabParam === 'seo' || tabParam === 'markdown') {
+      setActiveTab(tabParam);
+    }
+
+    // 2. W3C File Handlers (Launch Queue for .md and .txt files)
+    if ('launchQueue' in window && typeof (window as any).launchQueue.setConsumer === 'function') {
+      (window as any).launchQueue.setConsumer(async (launchParams: any) => {
+        if (!launchParams.files || !launchParams.files.length) return;
+        for (const fileHandle of launchParams.files) {
+          const file = await fileHandle.getFile();
+          const text = await file.text();
+          if (text) {
+            setEditableMarkdown(text);
+            setActiveTab('markdown');
+            setKeyword(file.name.replace(/\.[^/.]+$/, ''));
+          }
+        }
+      });
+    }
+
+    // 3. Register Periodic Sync (if supported & allowed)
+    registerPeriodicSync('refresh-trending-topics');
+  }, []);
+
+  // Request Notification permission
+  const handleEnableNotifications = async () => {
+    const res = await subscribeToPushNotifications();
+    if (res.success) {
+      setNotificationsEnabled(true);
+    }
+  };
 
   // Keyword inspiration chips
   const inspirationKeywords = [
@@ -86,8 +136,10 @@ export default function Dashboard() {
         if (contentType && contentType.includes('application/json')) {
           const errJson = await res.json();
           errMsg = errJson.error || errMsg;
+        } else if (res.status === 404) {
+          errMsg = 'Server API endpoint returned 404. If you recently deployed to Vercel, ensure the project includes the /api directory and that GEMINI_API_KEY is set in Vercel Project Settings > Environment Variables.';
         } else {
-          errMsg = `Server error (${res.status})`;
+          errMsg = `Server error (${res.status}): ${res.statusText || 'Unable to connect to AI generation API'}`;
         }
         throw new Error(errMsg);
       }
@@ -97,12 +149,19 @@ export default function Dashboard() {
       setEditableMarkdown(data.markdown || '');
       setActiveTab('preview');
 
+      // Send Push / System Notification when generation is finished
+      notifyBlogGenerationComplete(data.metaTitle || keyword, data.wordCount);
+
       // If auto-generate images is checked, trigger image generation for placeholders
       if (autoGenerateImages && data.suggestedImages && data.suggestedImages.length > 0) {
         handleBatchGenerateImages(data.suggestedImages);
       }
     } catch (err: any) {
       setError(err.message || 'Generation failed');
+      // If offline, register background sync so request can sync when restored
+      if (!navigator.onLine) {
+        registerBackgroundSync('sync-blog-posts');
+      }
     } finally {
       setLoading(false);
     }
@@ -247,6 +306,18 @@ export default function Dashboard() {
           )}
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleEnableNotifications}
+              title={notificationsEnabled ? 'Push notifications active' : 'Enable notifications for background generation'}
+              className={`p-2 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                notificationsEnabled
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80 hover:bg-emerald-100'
+                  : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+              }`}
+            >
+              <Bell className={`w-4 h-4 ${notificationsEnabled ? 'fill-emerald-500 text-emerald-600' : ''}`} />
+              <span className="hidden sm:inline">{notificationsEnabled ? 'Alerts On' : 'Alerts'}</span>
+            </button>
             {blogData && (
               <button
                 onClick={() => {

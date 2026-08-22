@@ -1,0 +1,37 @@
+import { handleGenerateBlogPost } from '../src/server/core';
+
+export default async function handler(req: any, res: any) {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed. Use POST.' });
+  }
+
+  try {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    const result = await handleGenerateBlogPost(body);
+    return res.status(result.status).json(result.data);
+  } catch (error: any) {
+    console.error("Vercel Serverless Generate API Error:", error);
+    let errorMessage = "An error occurred while generating the blog post.";
+    if (error.status === 429 || (error.message && error.message.includes("429"))) {
+      errorMessage = "Gemini API rate limit reached. Please try again in a moment.";
+    } else if (error.status === 503 || (error.message && error.message.includes("503"))) {
+      errorMessage = "The AI service is currently experiencing high demand. Please try again in a moment.";
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    return res.status(error.status === 429 ? 429 : 500).json({ error: errorMessage });
+  }
+}
