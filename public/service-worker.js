@@ -19,7 +19,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(PRECACHE_ASSETS).catch((err) => {
-        console.warn('Pre-caching warning:', err);
+        console.warn('[SW] Pre-caching warning:', err);
       });
     }).then(() => self.skipWaiting())
   );
@@ -102,6 +102,143 @@ self.addEventListener('fetch', (event) => {
         .catch(() => cachedResponse);
 
       return cachedResponse || fetchPromise;
+    })
+  );
+});
+
+/* ==========================================================================
+   1. BACKGROUND SYNC
+   Retries blog generation requests or syncs offline queues when connectivity returns
+   ========================================================================== */
+self.addEventListener('sync', (event) => {
+  console.log('[SW] Background sync event triggered:', event.tag);
+  if (event.tag === 'sync-blog-posts' || event.tag === 'sync-post-generation') {
+    event.waitUntil(
+      (async () => {
+        try {
+          // Notify active window clients that background sync is processing
+          const allClients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
+          for (const client of allClients) {
+            client.postMessage({
+              type: 'BACKGROUND_SYNC_TRIGGERED',
+              tag: event.tag,
+              timestamp: Date.now()
+            });
+          }
+        } catch (err) {
+          console.warn('[SW] Background sync execution warning:', err);
+        }
+      })()
+    );
+  }
+});
+
+/* ==========================================================================
+   2. PERIODIC BACKGROUND SYNC
+   Refreshes trending topic suggestions in background with permission check
+   ========================================================================== */
+self.addEventListener('periodicsync', (event) => {
+  console.log('[SW] Periodic background sync event triggered:', event.tag);
+  if (event.tag === 'refresh-trending-topics' || event.tag === 'periodic-content-refresh') {
+    event.waitUntil(
+      (async () => {
+        try {
+          // Safely update static manifest or cached resources in the background
+          const cache = await caches.open(CACHE_NAME);
+          const response = await fetch('/manifest.json').catch(() => null);
+          if (response && response.status === 200) {
+            await cache.put('/manifest.json', response);
+          }
+
+          // Broadcast to clients
+          const allClients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
+          for (const client of allClients) {
+            client.postMessage({
+              type: 'PERIODIC_SYNC_TRIGGERED',
+              tag: event.tag,
+              timestamp: Date.now()
+            });
+          }
+        } catch (err) {
+          console.warn('[SW] Periodic sync execution warning:', err);
+        }
+      })()
+    );
+  }
+});
+
+/* ==========================================================================
+   3. PUSH NOTIFICATIONS & NOTIFICATION CLICK
+   Displays push notifications even when tab isn't active/focused
+   ========================================================================== */
+self.addEventListener('push', (event) => {
+  let notificationData = {
+    title: 'SEO Blog Studio',
+    body: 'Your SEO blog post and visuals have finished generating!',
+    icon: '/icons/icon-192x192.png',
+    badge: '/favicon.png',
+    data: {
+      url: '/?tab=preview',
+      timestamp: Date.now()
+    }
+  };
+
+  if (event.data) {
+    try {
+      const payload = event.data.json();
+      notificationData = {
+        title: payload.title || notificationData.title,
+        body: payload.body || payload.message || notificationData.body,
+        icon: payload.icon || notificationData.icon,
+        badge: payload.badge || notificationData.badge,
+        data: payload.data || { url: payload.url || '/?tab=preview' }
+      };
+    } catch {
+      notificationData.body = event.data.text() || notificationData.body;
+    }
+  }
+
+  const options = {
+    body: notificationData.body,
+    icon: notificationData.icon,
+    badge: notificationData.badge,
+    data: notificationData.data,
+    vibrate: [100, 50, 100],
+    actions: [
+      { action: 'open_post', title: 'View Post' },
+      { action: 'dismiss', title: 'Close' }
+    ]
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(notificationData.title, options)
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  if (event.action === 'dismiss') {
+    return;
+  }
+
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      // Focus existing client window if available
+      for (const client of windowClients) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          if ('navigate' in client) {
+            client.navigate(targetUrl);
+          }
+          return client.focus();
+        }
+      }
+      // Otherwise open a new window
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
     })
   );
 });

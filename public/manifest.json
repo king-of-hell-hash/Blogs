@@ -9,6 +9,8 @@
   "scope": "/",
   "display": "standalone",
   "display_override": [
+    "tabbed_display",
+    "tabbed-display",
     "window-controls-overlay",
     "standalone"
   ],
@@ -26,6 +28,67 @@
   ],
   "launch_handler": {
     "client_mode": "focus-existing"
+  },
+  "file_handlers": [
+    {
+      "action": "/",
+      "name": "Markdown and Text Drafts",
+      "icons": [
+        {
+          "src": "/icons/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ],
+      "accept": {
+        "text/markdown": [
+          ".md",
+          ".markdown"
+        ],
+        "text/plain": [
+          ".txt"
+        ]
+      },
+      "launch_type": "single-client"
+    }
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+blogstudio",
+      "url": "/?topic=%s"
+    }
+  ],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "share_title",
+      "text": "share_text",
+      "url": "share_url"
+    }
+  },
+  "widgets": [
+    {
+      "name": "Recent Post Status",
+      "short_name": "Post Status",
+      "description": "Check status of recent AI blog generation",
+      "tag": "blog-status",
+      "template": "widget-template",
+      "ms_ac_template": "widgets/status.json",
+      "data": "widgets/status-data.json",
+      "type": "application/json",
+      "icons": [
+        {
+          "src": "/icons/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ],
+      "auth": false,
+      "update": 86400
+    }
+  ],
+  "edge_side_panel": {
+    "preferred_width": 480
   },
   "icons": [
     {
