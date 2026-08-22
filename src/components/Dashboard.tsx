@@ -86,8 +86,10 @@ export default function Dashboard() {
         if (contentType && contentType.includes('application/json')) {
           const errJson = await res.json();
           errMsg = errJson.error || errMsg;
+        } else if (res.status === 404) {
+          errMsg = 'Server API endpoint returned 404. If you recently deployed to Vercel, ensure the project includes the /api directory and that GEMINI_API_KEY is set in Vercel Project Settings > Environment Variables.';
         } else {
-          errMsg = `Server error (${res.status})`;
+          errMsg = `Server error (${res.status}): ${res.statusText || 'Unable to connect to AI generation API'}`;
         }
         throw new Error(errMsg);
       }
