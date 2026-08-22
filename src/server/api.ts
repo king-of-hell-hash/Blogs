@@ -1,5 +1,5 @@
 import express from 'express';
-import { handleGenerateBlogPost, handleGenerateImage } from './core';
+import { handleGenerateBlogPost, handleGenerateImage, handleTranscribeAudio } from './core';
 
 const router = express.Router();
 
@@ -39,4 +39,17 @@ router.post('/generate-image', async (req, res) => {
   }
 });
 
+router.post('/transcribe', async (req, res) => {
+  try {
+    const result = await handleTranscribeAudio(req.body);
+    return res.status(result.status).json(result.data);
+  } catch (error: any) {
+    console.error("Audio Transcription Endpoint Error:", error);
+    return res.status(error.status === 429 ? 429 : 500).json({
+      error: error.message || "Audio transcription failed."
+    });
+  }
+});
+
 export { router as apiRouter };
+

@@ -419,3 +419,100 @@ export async function handleGenerateImage(body: any): Promise<{ status: number; 
     }
   };
 }
+
+export async function handleTranscribeAudio(body: {
+  audioBase64: string;
+  mimeType?: string;
+  contextPrompt?: string;
+}): Promise<{ status: number; data: any }> {
+  const apiKey = getCleanApiKey();
+  if (!apiKey) {
+    return {
+      status: 400,
+      data: {
+        error: "GEMINI_API_KEY is not configured on the server. Please check your environment variables."
+      }
+    };
+  }
+
+  if (!body.audioBase64) {
+    return {
+      status: 400,
+      data: { error: "Missing audio recording data for transcription." }
+    };
+  }
+
+  // Remove data URL scheme prefix if present
+  let rawBase64 = body.audioBase64;
+  let detectedMime = body.mimeType || 'audio/webm';
+  if (rawBase64.includes(',')) {
+    const parts = rawBase64.split(',');
+    const match = parts[0].match(/:(.*?);/);
+    if (match && match[1]) {
+      detectedMime = match[1];
+    }
+    rawBase64 = parts[1];
+  }
+
+  const ai = new GoogleGenAI({
+    apiKey,
+    httpOptions: {
+      headers: { 'User-Agent': 'aistudio-build' }
+    }
+  });
+
+  const promptText = body.contextPrompt
+    ? `You are an expert audio transcription assistant for a content creation and SEO blog application. Please transcribe this spoken audio into accurate, clean, well-punctuated text. Additional context: ${body.contextPrompt}. Return ONLY the transcribed text without any greetings, commentary, or quotes.`
+    : `You are an expert audio transcription assistant. Please transcribe the provided voice recording accurately word-for-word, formatting proper grammar, capitalization, and punctuation. Return ONLY the transcribed text without any surrounding quotes, conversational filler, or commentary.`;
+
+  // Explicitly using gemini-3.5-flash as specified by user instructions
+  const modelsToTry = ['gemini-3.5-flash', 'gemini-3.7-flash', 'gemini-3.1-flash-lite'];
+  let lastError: any = null;
+
+  for (const model of modelsToTry) {
+    try {
+      const response = await ai.models.generateContent({
+        model: model,
+        contents: [
+          {
+            parts: [
+              {
+                inlineData: {
+                  data: rawBase64,
+                  mimeType: detectedMime
+                }
+              },
+              {
+                text: promptText
+              }
+            ]
+          }
+        ]
+      });
+
+      const transcription = response.text ? response.text.trim() : "";
+      return {
+        status: 200,
+        data: {
+          transcription,
+          model
+        }
+      };
+    } catch (err: any) {
+      lastError = err;
+      console.warn(`Transcribe audio attempt with ${model} failed:`, err?.message || err);
+      // If error is not a model not found / alias issue, don't keep looping unnecessarily unless 503/429
+      if (err.status === 429) {
+        break;
+      }
+    }
+  }
+
+  const errorMsg = lastError?.message || "Failed to transcribe audio with Gemini.";
+  return {
+    status: lastError?.status === 429 ? 429 : 500,
+    data: {
+      error: errorMsg
+    }
+  };
+}
