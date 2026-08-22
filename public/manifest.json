@@ -155,7 +155,7 @@
       "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/icons/icon-512x512-maskable.png",
@@ -188,12 +188,12 @@
       "url": "/?action=new",
       "icons": [
         {
-          "src": "/icons/icon-96x96.png",
+          "src": "/icons/shortcut-new-96x96.png",
           "sizes": "96x96",
           "type": "image/png"
         },
         {
-          "src": "/icons/icon-192x192.png",
+          "src": "/icons/shortcut-new-192x192.png",
           "sizes": "192x192",
           "type": "image/png"
         }
@@ -206,12 +206,12 @@
       "url": "/?tab=images",
       "icons": [
         {
-          "src": "/icons/icon-96x96.png",
+          "src": "/icons/shortcut-visuals-96x96.png",
           "sizes": "96x96",
           "type": "image/png"
         },
         {
-          "src": "/icons/icon-192x192.png",
+          "src": "/icons/shortcut-visuals-192x192.png",
           "sizes": "192x192",
           "type": "image/png"
         }

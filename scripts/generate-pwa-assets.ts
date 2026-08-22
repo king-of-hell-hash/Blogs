@@ -339,56 +339,147 @@ function getMobileScreenshotSvg(): string {
   `;
 }
 
-async function main() {
-  console.log('Generating valid PNG icons and screenshots with Sharp...');
+// 2. Generate Shortcut Icon: New Post
+function getShortcutNewSvg(size: number): string {
+  const cornerRadius = size * 0.22;
+  return `
+  <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="snBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#4338ca" />
+        <stop offset="100%" stop-color="#6366f1" />
+      </linearGradient>
+    </defs>
+    <rect width="${size}" height="${size}" rx="${cornerRadius}" fill="url(#snBgGrad)" />
+    <!-- Feather / Pen -->
+    <path d="
+      M ${size * 0.68} ${size * 0.22}
+      C ${size * 0.74} ${size * 0.16}, ${size * 0.84} ${size * 0.24}, ${size * 0.78} ${size * 0.32}
+      L ${size * 0.44} ${size * 0.66}
+      L ${size * 0.28} ${size * 0.72}
+      L ${size * 0.34} ${size * 0.56}
+      Z
+    " fill="#ffffff" />
+    <!-- Plus badge -->
+    <circle cx="${size * 0.72}" cy="${size * 0.72}" r="${size * 0.18}" fill="#10b981" />
+    <path d="M ${size * 0.72} ${size * 0.62} L ${size * 0.72} ${size * 0.82} M ${size * 0.62} ${size * 0.72} L ${size * 0.82} ${size * 0.72}" stroke="#ffffff" stroke-width="${size * 0.05}" stroke-linecap="round" />
+  </svg>
+  `;
+}
 
-  const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
-  for (const size of iconSizes) {
-    const svg = getIconSvg(size, false);
+// 3. Generate Shortcut Icon: Visual Studio
+function getShortcutVisualsSvg(size: number): string {
+  const cornerRadius = size * 0.22;
+  return `
+  <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="svBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#7c3aed" />
+        <stop offset="100%" stop-color="#a855f7" />
+      </linearGradient>
+    </defs>
+    <rect width="${size}" height="${size}" rx="${cornerRadius}" fill="url(#svBgGrad)" />
+    <!-- Image Card Frame -->
+    <rect x="${size * 0.22}" y="${size * 0.24}" width="${size * 0.56}" height="${size * 0.52}" rx="${size * 0.08}" fill="#ffffff" />
+    <!-- Sun / Moon -->
+    <circle cx="${size * 0.38}" cy="${size * 0.42}" r="${size * 0.07}" fill="#fbbf24" />
+    <!-- Mountain Peaks -->
+    <polygon points="${size * 0.26},${size * 0.68} ${size * 0.46},${size * 0.48} ${size * 0.60},${size * 0.62} ${size * 0.74},${size * 0.68}" fill="#8b5cf6" />
+  </svg>
+  `;
+}
+
+// 4. Declarative Icon Configurations
+interface MainIconConfig {
+  size: number;
+  filename: string;
+  maskable: boolean;
+}
+
+interface ShortcutIconConfig {
+  size: number;
+  filename: string;
+  generator: (size: number) => string;
+}
+
+const MAIN_ICONS: MainIconConfig[] = [
+  { size: 72, filename: 'icon-72x72.png', maskable: false },
+  { size: 96, filename: 'icon-96x96.png', maskable: false },
+  { size: 128, filename: 'icon-128x128.png', maskable: false },
+  { size: 144, filename: 'icon-144x144.png', maskable: false },
+  { size: 152, filename: 'icon-152x152.png', maskable: false },
+  { size: 192, filename: 'icon-192x192.png', maskable: false },
+  { size: 192, filename: 'icon-192x192-maskable.png', maskable: true },
+  { size: 384, filename: 'icon-384x384.png', maskable: false },
+  { size: 512, filename: 'icon-512x512.png', maskable: false },
+  { size: 512, filename: 'icon-512x512-maskable.png', maskable: true },
+];
+
+const SHORTCUT_ICONS: ShortcutIconConfig[] = [
+  { size: 96, filename: 'shortcut-new-96x96.png', generator: getShortcutNewSvg },
+  { size: 192, filename: 'shortcut-new-192x192.png', generator: getShortcutNewSvg },
+  { size: 96, filename: 'shortcut-visuals-96x96.png', generator: getShortcutVisualsSvg },
+  { size: 192, filename: 'shortcut-visuals-192x192.png', generator: getShortcutVisualsSvg },
+];
+
+async function main() {
+  console.log('Generating valid PNG icons, shortcut icons, and screenshots with Sharp...');
+
+  // Generate all 10 main icons in a clean loop
+  for (const { size, filename, maskable } of MAIN_ICONS) {
+    const svg = getIconSvg(size, maskable);
+    const dest = path.join(ICONS_DIR, filename);
     await sharp(Buffer.from(svg))
       .png({ compressionLevel: 9 })
-      .toFile(path.join(ICONS_DIR, `icon-${size}x${size}.png`));
-    console.log(`✓ Created /public/icons/icon-${size}x${size}.png`);
+      .toFile(dest);
+    const stats = fs.statSync(dest);
+    console.log(`✓ Created /public/icons/${filename} (${stats.size} bytes, ${size}x${size}, maskable=${maskable})`);
   }
 
-  // Maskable icons
-  for (const size of [192, 512]) {
-    const svgMaskable = getIconSvg(size, true);
-    await sharp(Buffer.from(svgMaskable))
+  // Generate all 4 shortcut icons in a clean loop
+  for (const { size, filename, generator } of SHORTCUT_ICONS) {
+    const svg = generator(size);
+    const dest = path.join(ICONS_DIR, filename);
+    await sharp(Buffer.from(svg))
       .png({ compressionLevel: 9 })
-      .toFile(path.join(ICONS_DIR, `icon-${size}x${size}-maskable.png`));
-    console.log(`✓ Created /public/icons/icon-${size}x${size}-maskable.png`);
+      .toFile(dest);
+    const stats = fs.statSync(dest);
+    console.log(`✓ Created /public/icons/${filename} (${stats.size} bytes, ${size}x${size})`);
   }
 
   // Apple touch icon (180x180)
   const svg180 = getIconSvg(180, false);
+  const appleDest = path.join(PUBLIC_DIR, 'apple-touch-icon.png');
   await sharp(Buffer.from(svg180))
     .png({ compressionLevel: 9 })
-    .toFile(path.join(PUBLIC_DIR, 'apple-touch-icon.png'));
-  console.log('✓ Created /public/apple-touch-icon.png');
+    .toFile(appleDest);
+  console.log(`✓ Created /public/apple-touch-icon.png (${fs.statSync(appleDest).size} bytes)`);
 
   // Favicon (64x64)
   const svg64 = getIconSvg(64, false);
+  const favDest = path.join(PUBLIC_DIR, 'favicon.png');
   await sharp(Buffer.from(svg64))
     .png({ compressionLevel: 9 })
-    .toFile(path.join(PUBLIC_DIR, 'favicon.png'));
-  console.log('✓ Created /public/favicon.png');
+    .toFile(favDest);
+  console.log(`✓ Created /public/favicon.png (${fs.statSync(favDest).size} bytes)`);
 
   // Desktop screenshot (1280x720)
   const svgDesktop = getDesktopScreenshotSvg();
+  const deskDest = path.join(SCREENSHOTS_DIR, 'desktop-1280x720.png');
   await sharp(Buffer.from(svgDesktop))
     .png({ compressionLevel: 8 })
-    .toFile(path.join(SCREENSHOTS_DIR, 'desktop-1280x720.png'));
-  console.log('✓ Created /public/screenshots/desktop-1280x720.png');
+    .toFile(deskDest);
+  console.log(`✓ Created /public/screenshots/desktop-1280x720.png (${fs.statSync(deskDest).size} bytes)`);
 
   // Mobile screenshot (750x1334)
   const svgMobile = getMobileScreenshotSvg();
+  const mobDest = path.join(SCREENSHOTS_DIR, 'mobile-750x1334.png');
   await sharp(Buffer.from(svgMobile))
     .png({ compressionLevel: 8 })
-    .toFile(path.join(SCREENSHOTS_DIR, 'mobile-750x1334.png'));
-  console.log('✓ Created /public/screenshots/mobile-750x1334.png');
+    .toFile(mobDest);
+  console.log(`✓ Created /public/screenshots/mobile-750x1334.png (${fs.statSync(mobDest).size} bytes)`);
 
-  console.log('All PWA assets generated successfully!');
+  console.log('\nAll 14 PWA icons + screenshots generated successfully as valid PNG binaries!');
 }
 
 main().catch((err) => {
