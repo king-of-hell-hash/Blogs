@@ -1,5 +1,8 @@
 import { handleTranscribeAudio } from '../src/server/core';
 
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
 export const config = {
   api: {
     bodyParser: {
@@ -39,15 +42,24 @@ export default async function handler(req: any, res: any) {
     const result = await handleTranscribeAudio(body);
     return res.status(result.status).json(result.data);
   } catch (error: any) {
-    console.error("Serverless Transcribe API Error:", error);
+    console.error("=== Vercel Serverless /api/transcribe ERROR ===");
+    console.error("Error Message:", error?.message);
+    console.error("Error Stack:", error?.stack);
+    console.error("Full Error Object:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+    console.error("================================================");
+
     let errorMessage = "An error occurred during audio transcription.";
-    if (error.status === 429 || (error.message && error.message.includes("429"))) {
+    if (error?.status === 429 || (error?.message && error.message.includes("429"))) {
       errorMessage = "Gemini API rate limit reached. Please try again in a moment.";
-    } else if (error.status === 503 || (error.message && error.message.includes("503"))) {
+    } else if (error?.status === 503 || (error?.message && error.message.includes("503"))) {
       errorMessage = "The AI service is currently experiencing high demand. Please try again in a moment.";
-    } else if (error.message) {
+    } else if (error?.message) {
       errorMessage = error.message;
     }
-    return res.status(error.status === 429 ? 429 : 500).json({ error: errorMessage });
+    return res.status(error?.status === 429 ? 429 : 500).json({
+      error: errorMessage,
+      details: error?.message,
+      timestamp: new Date().toISOString()
+    });
   }
 }

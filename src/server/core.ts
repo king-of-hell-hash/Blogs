@@ -2,12 +2,12 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { getCuratedImageUrl } from '../utils/imageFallback';
 
 export function getCleanApiKey(): string {
-  const key = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.API_KEY || '';
+  const key = process.env.GEMINI_API_KEY ||
+              process.env.VITE_GEMINI_API_KEY ||
+              process.env.GOOGLE_API_KEY ||
+              process.env.GOOGLE_GENAI_API_KEY ||
+              process.env.API_KEY || '';
   const cleaned = key.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
-  
-  if (cleaned.length > 0 && (cleaned.includes(' ') || cleaned.length > 100)) {
-    throw new Error("Invalid GEMINI_API_KEY format. Please check your API key in environment variables.");
-  }
   
   return cleaned;
 }
@@ -129,9 +129,9 @@ export async function handleGenerateBlogPost(body: any): Promise<{ status: numbe
   const apiKey = getCleanApiKey();
   if (!apiKey) {
     return {
-      status: 500,
+      status: 400,
       data: {
-        error: "Missing GEMINI_API_KEY. Please set GEMINI_API_KEY in your deployment environment variables (e.g. in Vercel Project Settings > Environment Variables)."
+        error: "Missing GEMINI_API_KEY. Please configure GEMINI_API_KEY in your deployment environment variables (Vercel Dashboard → Project Settings → Environment Variables) and redeploy."
       }
     };
   }

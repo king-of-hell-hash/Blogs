@@ -1,5 +1,8 @@
 import { handleGenerateImage } from '../src/server/core';
 
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -30,7 +33,16 @@ export default async function handler(req: any, res: any) {
     const result = await handleGenerateImage(body);
     return res.status(result.status).json(result.data);
   } catch (error: any) {
-    console.error("Vercel Serverless Image API Error:", error);
-    return res.status(500).json({ error: error.message || "Image generation failed" });
+    console.error("=== Vercel Serverless /api/generate-image ERROR ===");
+    console.error("Error Message:", error?.message);
+    console.error("Error Stack:", error?.stack);
+    console.error("Full Error Object:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+    console.error("==================================================");
+
+    return res.status(500).json({
+      error: error?.message || "Image generation failed",
+      details: error?.message,
+      timestamp: new Date().toISOString()
+    });
   }
 }
