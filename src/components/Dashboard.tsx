@@ -140,16 +140,19 @@ export default function Dashboard() {
           const rawText = await res.text();
           try {
             const errJson = JSON.parse(rawText);
-            errMsg = errJson.error || errJson.message || errMsg;
+            errMsg = errJson.error || errJson.message || errJson.details || errMsg;
           } catch {
             if (rawText && rawText.trim().length > 0) {
-              errMsg = rawText.slice(0, 300);
+              if (rawText.includes('FUNCTION_INVOCATION_FAILED')) {
+                errMsg = 'Vercel Serverless Function error (FUNCTION_INVOCATION_FAILED). Ensure GEMINI_API_KEY is configured under Vercel Project Settings → Environment Variables and that the latest deployment is redeployed.';
+              } else {
+                errMsg = rawText.slice(0, 300);
+              }
             }
           }
         } catch {
-          // If reading response fails
           if (res.status === 404) {
-            errMsg = 'Server API endpoint returned 404. If you recently deployed to Vercel, ensure the project includes the /api directory and that GEMINI_API_KEY is set in Vercel Project Settings > Environment Variables.';
+            errMsg = 'Server API endpoint returned 404. Ensure GEMINI_API_KEY is configured in Vercel Project Settings > Environment Variables.';
           } else {
             errMsg = `Server error (${res.status}): ${res.statusText || 'Unable to connect to AI generation API'}`;
           }
