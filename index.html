@@ -10,18 +10,32 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Blog Studio" />
+    <meta name="application-name" content="SEO Blog Studio" />
+    <meta name="msapplication-TileColor" content="#7c3aed" />
+
+    <!-- Web App Manifest -->
     <link rel="manifest" href="/manifest.json" />
-    <link rel="icon" type="image/png" href="/icons/icon-192x192.png" />
-    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+
+    <!-- Standard Favicon & Icons -->
+    <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512x512.png" />
+
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png" />
+
+    <!-- Open Graph & Social Sharing -->
     <meta property="og:title" content="SEO Blog Studio" />
     <meta property="og:description" content="Online Web Research & AI Visuals Engine for generating SEO-optimized blog content with images" />
     <meta property="og:type" content="website" />
+    <meta property="og:image" content="/screenshots/desktop-1280x720.png" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="/screenshots/desktop-1280x720.png" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

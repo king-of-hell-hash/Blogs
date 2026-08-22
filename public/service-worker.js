@@ -1,4 +1,4 @@
-const CACHE_NAME = 'seo-blog-studio-v1';
+const CACHE_NAME = 'seo-blog-studio-v2';
 
 // Static assets to precache on install
 const PRECACHE_ASSETS = [
@@ -7,7 +7,11 @@ const PRECACHE_ASSETS = [
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
-  '/apple-touch-icon.png'
+  '/icons/icon-512x512-maskable.png',
+  '/apple-touch-icon.png',
+  '/favicon.png',
+  '/screenshots/desktop-1280x720.png',
+  '/screenshots/mobile-750x1334.png'
 ];
 
 // Install Event: Precache core static shell
@@ -36,7 +40,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch Event: Dynamic Network-First for API/HTML, Cache-First for static assets
+// Fetch Event: Dynamic Network-First for API/HTML, Cache-First with Stale-While-Revalidate for static assets
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -84,7 +88,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static Assets (JS, CSS, Images, Fonts, Icons): Stale-While-Revalidate
+  // Static Assets (JS, CSS, Images, Fonts, Icons, Manifest): Stale-While-Revalidate
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       const fetchPromise = fetch(request)
